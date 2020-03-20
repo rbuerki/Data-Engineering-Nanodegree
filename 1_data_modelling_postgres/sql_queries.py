@@ -17,7 +17,7 @@ songplay_table_create = ("""CREATE TABLE IF NOT EXISTS songplays
                                            artist_id VARCHAR(18),
                                            session_id INT NOT NULL,
                                            location VARCHAR NOT NULL,
-                                           user_agent VARCHAR NOT NULL
+                                           user_agent VARCHAR NOT NULL,
                                            PRIMARY KEY (songplay_id)
                                            );
 """)
