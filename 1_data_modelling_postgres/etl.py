@@ -66,12 +66,16 @@ def process_log_file(cur, filepath):
     # Insert songplay records
     for index, row in df.iterrows():
         # Get songid and artistid from song and artist tables
-        results = cur.execute(sql.song_select, (row["song"],
-                                                row["artist"],
-                                                row["length"]
-                                                )
-                              )
-        songid, artistid = results if results else None, None
+        cur.execute(sql.song_select, (row["song"],
+                                      row["artist"],
+                                      row["length"]
+                                      )
+                    )
+        results = cur.fetchone()
+        if results:
+            songid, artistid = results
+        else:
+            songid, artistid = None, None
         # Insert songplay record
         songplay_data = [row["ts"],
                          row["userId"],
@@ -101,7 +105,7 @@ def process_data(cur, conn, filepath, func):
     # Iterate over files and process
     for i, datafile in enumerate(all_files, 1):
         func(cur, datafile)
-        conn.commit()
+        # conn.commit()
         print(f"{i}/{num_files} files processed.")
 
 

@@ -70,7 +70,7 @@ songplay_table_insert = ("""INSERT INTO songplays
                                  session_id,
                                  location,
                                  user_agent)
-                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
 """)
 
 user_table_insert = ("""INSERT INTO users
