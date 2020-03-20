@@ -9,7 +9,7 @@ time_table_drop = "DROP TABLE IF EXISTS time;"
 # CREATE TABLES
 
 songplay_table_create = ("""CREATE TABLE IF NOT EXISTS songplays
-                                          (songplay_id SERIAL,
+                                          (songplay_id SERIAL PRIMARY KEY,
                                            start_time TIMESTAMP NOT NULL,
                                            user_id INT NOT NULL,
                                            level VARCHAR NOT NULL,
@@ -17,38 +17,34 @@ songplay_table_create = ("""CREATE TABLE IF NOT EXISTS songplays
                                            artist_id VARCHAR(18),
                                            session_id INT NOT NULL,
                                            location VARCHAR NOT NULL,
-                                           user_agent VARCHAR NOT NULL,
-                                           PRIMARY KEY (songplay_id)
+                                           user_agent VARCHAR NOT NULL
                                            );
 """)
 
 user_table_create = ("""CREATE TABLE IF NOT EXISTS users
-                                   (user_id INT,
+                                   (user_id INT PRIMARY KEY,
                                     first_name VARCHAR NOT NULL,
                                     last_name VARCHAR NOT NULL,
                                     gender CHAR(1) NOT NULL,
-                                    level VARCHAR NOT NULL,
-                                    PRIMARY KEY (user_id)
+                                    level VARCHAR NOT NULL
                                     );
 """)
 
 song_table_create = ("""CREATE TABLE IF NOT EXISTS songs
-                                   (song_id VARCHAR(18),
+                                   (song_id VARCHAR(18) PRIMARY KEY,
                                     title VARCHAR NOT NULL,
                                     artist_id VARCHAR(18) NOT NULL,
                                     year INT NOT NULL,
-                                    duration DECIMAL NOT NULL,
-                                    PRIMARY KEY (song_id)
+                                    duration DECIMAL NOT NULL
                                     );
 """)
 
 artist_table_create = ("""CREATE TABLE IF NOT EXISTS artists
-                                   (artist_id VARCHAR(18),
+                                   (artist_id VARCHAR(18) PRIMARY KEY,
                                     name VARCHAR NOT NULL,
                                     location VARCHAR,
                                     latitude DECIMAL,
-                                    longitude DECIMAL,
-                                    PRIMARY KEY (artist_id)
+                                    longitude DECIMAL
                                     );
 """)
 
@@ -83,7 +79,9 @@ user_table_insert = ("""INSERT INTO users
                              last_name,
                              gender,
                              level)
-                        VALUES (%s, %s, %s, %s, %s);
+                        VALUES (%s, %s, %s, %s, %s)
+                        ON CONFLICT (user_id) DO UPDATE
+                        SET level = EXCLUDED.level;
 """)
 
 song_table_insert = ("""INSERT INTO songs
@@ -92,7 +90,8 @@ song_table_insert = ("""INSERT INTO songs
                              artist_id,
                              year,
                              duration)
-                        VALUES (%s, %s, %s, %s, %s);
+                        VALUES (%s, %s, %s, %s, %s)
+                        ON CONFLICT DO NOTHING;
 """)
 
 artist_table_insert = ("""INSERT INTO artists
@@ -101,7 +100,8 @@ artist_table_insert = ("""INSERT INTO artists
                              location,
                              latitude,
                              longitude)
-                        VALUES (%s, %s, %s, %s, %s);
+                        VALUES (%s, %s, %s, %s, %s)
+                        ON CONFLICT DO NOTHING;
 """)
 
 time_table_insert = ("""INSERT INTO time
@@ -112,7 +112,8 @@ time_table_insert = ("""INSERT INTO time
                              month,
                              year,
                              weekday)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s);
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT DO NOTHING;
 """)
 
 # FIND SONGS
