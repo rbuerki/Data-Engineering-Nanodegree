@@ -121,11 +121,11 @@ time_table_insert = ("""INSERT INTO time
 song_select = ("""SELECT s.song_id,
                          s.artist_id
                   FROM   songs AS s
-                  JOIN   artists AS at
-                    ON   at.artist_id = s.artist_id
+                  JOIN   artists AS a
+                    ON   a.artist_id = s.artist_id
                   WHERE  s.title = %s
-                   AND   at.name = %s
-                   AND   s.duration = %s;
+                    AND  a.name = %s
+                    AND  s.duration = %s;
 """)
 
 # QUERY LISTS
