@@ -1,8 +1,6 @@
 # Project: Data Modeling with Postgres
 
-The goal of this project ist to develop an ETL pipeline for analyzing data on songs and user activity for a music streaming app.
-
-This project creates a **star-schema Postgres database** from a directory of JSON files, containing logs on user activity and metadata on the songs in the app.
+The goal of this project ist to develop an ETL pipeline for analyzing data for a music streaming app. This project creates a **star-schema Postgres database** from a directory of JSON files, containing logs on user activity and metadata on the songs in the app.
 
 ## Input data
 
