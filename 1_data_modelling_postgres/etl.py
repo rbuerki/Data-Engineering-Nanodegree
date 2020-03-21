@@ -2,7 +2,7 @@ import os
 import glob
 import pandas as pd
 import sql_queries as sql
-from connect_db import get_connection
+from db_connect import get_connection
 
 
 def process_song_file(cur, filepath):
