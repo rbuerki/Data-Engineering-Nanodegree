@@ -81,19 +81,19 @@ The project python dependencies can be installed with help of the `envirment.yml
 
 ## Run
 
-To create the database tables or to reset the database, run:
+Script to create the database tables or to reset the database:
 
 ``` sh
 ./create_tables.py
 ```
 
-To populate data into  the tables run the ETL pipeline:
+ETL pipeline to populate data into the tables:
 
 ``` sh
 ./etl.py
 ```
 
-(One way to verify the data is using the provided `test.ipynb` jupyter notebook in the development folder.)
+One way to verify the data is using the provided `test.ipynb` jupyter notebook in the development folder:
 
 ``` sh
 ./z_dev_notebooks/jupyter notebook
