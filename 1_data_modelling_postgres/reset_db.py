@@ -1,3 +1,9 @@
+"""
+This file is for development purpose only. If run from the terminal it resets
+the database. (--> Drops all existing tables and recreates them empty.)
+"""
+
+
 import psycopg2
 from sql_queries import create_table_queries, drop_table_queries
 
