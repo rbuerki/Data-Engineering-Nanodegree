@@ -1,4 +1,4 @@
-# The aaproach here has been inspired by:
+# The aproach here has been inspired by:
 # https://www.postgresqltutorial.com/postgresql-python/connect/
 
 import psycopg2
