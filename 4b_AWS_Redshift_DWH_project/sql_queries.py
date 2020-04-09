@@ -17,12 +17,42 @@ time_table_drop = "DROP TABLE IF EXISTS time;"
 
 # CREATE TABLES
 
-staging_events_table_create = ("""CREATE TABLE IF NOT EXISTS staging_events
+# Postgres' SERIAL command is not supported in Redshift. The equivalent is IDENTITY(0,1)
+# Read more here: https://docs.aws.amazon.com/redshift/latest/dg/r_CREATE_TABLE_NEW.html
 
+staging_events_table_create = ("""CREATE TABLE IF NOT EXISTS staging_events
+                                                    artist VARCHAR NOT NULL,
+                                                    auth VARCHAR NOT NULL,
+                                                    firstName VARCHAR NOT NULL,
+                                                    gender CHAR(1) NOT NULL,
+                                                    itemInSession INT NOT NULL,
+                                                    lastName VARCHAR NOT NULL,
+                                                    length DECIMAL NOT NULL,
+                                                    level VARCHAR NOT NULL,
+                                                    location VARCHAR NOT NULL,
+                                                    method VARCHAR NOT NULL,
+                                                    page VARCHAR NOT NULL,
+                                                    registration VARCHAR(15) NOT NULL,
+                                                    sessionId INT NOT NULL,
+                                                    song VARCHAR NOT NULL,
+                                                    status INT NOT NULL,
+                                                    ts TIMESTAMP NOT NULL,
+                                                    userAgent VARCHAR,
+                                                    userId INT NOT NULL
 """)
 
 staging_songs_table_create = ("""CREATE TABLE IF NOT EXISTS staging_songs
-
+                                                (num_songs IDENTITY(0,1),
+                                                 artist_id  VARCHAR(18) NOT NULL,
+                                                 artist_latitude DECIMAL,
+                                                 artist_longitude DECIMAL,
+                                                 artist_location VARCHAR,
+                                                 artist_name VARCHAR NOT NULL,
+                                                 song_id VARCHAR(18) NOT NULL,
+                                                 title VARCHAR NOT NULL,
+                                                 duration DECIMAL NOT NULL,
+                                                 year INT NOT NULL
+                                                 );
 """)
 
 songplay_table_create = ("""CREATE TABLE IF NOT EXISTS songplays
@@ -78,10 +108,18 @@ time_table_create = ("""CREATE TABLE IF NOT EXISTS time
 
 # STAGING TABLES
 
-staging_events_copy = ("""
-""").format()
+staging_events_copy = (f"""
+            COPY staging_events
+            FROM {LOG_DATA}    --------------------- what is this for: LOG_JSONPATH='s3://udacity-dend/log_json_path.json'
+            credentials 'aws_iam_role={ARN}'
+            gzip delimiter ';' region 'us-west-2';  ---------------------------- CHECK THE REGION!
+""")
 
-staging_songs_copy = ("""
+staging_songs_copy = (f"""
+            COPY staging_songs
+            FROM {SONG_DATA}
+            credentials 'aws_iam_role={ARN}'
+            gzip delimiter ';' region 'us-west-2';
 """).format()
 
 # FINAL TABLES
@@ -117,7 +155,7 @@ drop_table_queries = [staging_events_table_drop,
                       songplay_table_drop,
                       user_table_drop,
                       song_table_drop,
-                      artist_table_drop, 
+                      artist_table_drop,
                       time_table_drop
                       ]
 
