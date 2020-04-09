@@ -1,5 +1,9 @@
 # Project: Cloud Data Warehous (AWS Redshift)
 
+- [ ] in sql_queries, inserting data in staging tables and then in normal tables
+- [ ] then comes the etl shit ...
+- [ ] then i can create a redshift cluster
+
 **Introduction**<br>
 A music streaming startup, Sparkify, has grown their user base and song database and want to move their processes and data onto the cloud. Their data resides in S3, in a directory of JSON logs on user activity on the app, as well as a directory with JSON metadata on the songs in their app.
 
