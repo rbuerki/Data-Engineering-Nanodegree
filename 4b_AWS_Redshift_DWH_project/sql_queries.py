@@ -45,8 +45,8 @@ staging_events_table_create = ("""CREATE TABLE IF NOT EXISTS staging_events
                                                     song VARCHAR,
                                                     status INT,
                                                     ts TIMESTAMP,
-                                                    userAgent VARCHAR DISTKEY,  -- not sure, same as for songplays
-                                                    userId INT
+                                                    userAgent VARCHAR,
+                                                    userId INT DISTKEY  -- not sure if this makes sense here ... the same as in the FactTable, later
                                                     );
 """)
 
