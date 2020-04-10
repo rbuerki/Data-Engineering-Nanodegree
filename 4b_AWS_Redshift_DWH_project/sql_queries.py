@@ -167,7 +167,9 @@ songplay_table_insert = ("""INSERT INTO songplays
                                  e.userAgent
                             FROM staging_events AS e
                             JOIN staging_songs AS s
-                                ON e.artist = s.artist_name
+                                 ON e.song = s.title
+                                   AND e.artist = s.artist_name
+                                   AND e.length = s.duration
                             WHERE e.page = 'NextSong'
 """)
 
