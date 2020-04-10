@@ -1,16 +1,16 @@
 # Project: Cloud Data Warehous (AWS Redshift)
 
-- [ ] in sql_queries, inserting data in staging tables and then in normal tables
-- [ ] then comes the etl shit ...
-- [ ] then i can create a redshift cluster
+## Introduction
 
-**Introduction**<br>
 A music streaming startup, Sparkify, has grown their user base and song database and want to move their processes and data onto the cloud. Their data resides in S3, in a directory of JSON logs on user activity on the app, as well as a directory with JSON metadata on the songs in their app.
 
-As their data engineer, you are tasked with building an ETL pipeline that extracts their data from S3, stages them in Redshift, and transforms data into a set of dimensional tables for their analytics team to continue finding insights in what songs their users are listening to. You'll be able to test your database and ETL pipeline by running queries given to you by the analytics team from Sparkify and compare your results with their expected results.
+After setting up an AWS Redshift cluster, the task is building an ETL pipeline that:
 
-**Project Description**<br>
-In this project, you'll apply what you've learned on data warehouses and AWS to build an ETL pipeline for a database hosted on Redshift. To complete the project, you will need to load data from S3 to staging tables on Redshift and execute SQL statements that create the analytics tables from these staging tables.
+- extracts the JSON data from S3
+- stages them in Redshift, and
+- transforms them into a star schema with a set of dimensional tables.
+
+End goal is to prepare a DWH for their analytics team to continue finding insights in what songs their users are listening to.
 
 ## Input data
 
@@ -106,11 +106,19 @@ Final fact and dimension tables should be following a star schema with an analyt
 
 ## Build [to be re-defined, WIP]
 
-This project runs with **Python 3.6** or higher ...
+This project runs with **Python 3.6** or higher on an **AWS Redshift Cluster**.
 
-[COMPLETE THIS]
+The project python dependencies can be installed with help of the envirment.yml (conda) or requirements.txt (pip).
 
-## Run [to be re-defined, WIP]
+## Config
+
+Copy `dwh.cfg.example` to `dwh.cfg`, and fill the settings for:
+
+- Cluster Creation on `[DWH]` and `[AWS]`
+- Cluster Connection on `[CLUSTER]`
+- Your ARN to provide S3 access from Redshift on `[IAM_ROLE]`
+
+## Run
 
 _Script to create the database tables or to reset the database:
 
@@ -122,10 +130,4 @@ ETL pipeline to populate data into the tables:
 
 ``` sh
 ./etl.py
-```
-
-One way to verify the data is using the provided `test.ipynb` jupyter notebook in the development folder:
-
-``` sh
-./z_dev_notebooks/jupyter notebook_
 ```
