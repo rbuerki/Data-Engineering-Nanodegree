@@ -16,7 +16,7 @@ def main():
     cur, conn = connect()
     load_staging_tables(cur, conn)
     insert_tables(cur, conn)
-    close()
+    close(cur, conn)
 
 
 if __name__ == "__main__":
