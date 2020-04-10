@@ -26,11 +26,18 @@ def connect():
     """ Connect to the Redshift cluster. Return cursor and connection."""
     conn = None
     try:
-        # Read connection parameters (HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT)
+        # Read connection parameters
         db_params = config()
+        print(db_params)
         # Connect to the PostgreSQL server
         print("Connecting to the Redshift cluster ...")
-        conn = psycopg2.connect(**db_params)
+        conn = psycopg2.connect(
+            f"host={db_params.get('host')} \
+              dbname={db_params.get('db_name')} \
+              user={db_params.get('db_user')} \
+              password={db_params.get('db_password')} \
+              port={db_params.get('db_port')}"
+              )
         # Set auto commit so that each action is commited without calling conn.commit()
         conn.set_session(autocommit=True)
         # Create a cursor
