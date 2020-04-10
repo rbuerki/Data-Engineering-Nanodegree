@@ -16,7 +16,7 @@ def main():
     cur, conn = connect()
     drop_tables(cur, conn)
     create_tables(cur, conn)
-    close()
+    close(cur, conn)
 
 
 if __name__ == "__main__":
