@@ -29,7 +29,7 @@ time_table_drop = "DROP TABLE IF EXISTS time;"
 # Staging Tables
 
 staging_events_table_create = ("""CREATE TABLE IF NOT EXISTS staging_events
-                                                    artist VARCHAR,
+                                                   (artist VARCHAR,
                                                     auth VARCHAR,
                                                     firstName VARCHAR,
                                                     gender CHAR(1),
@@ -41,12 +41,13 @@ staging_events_table_create = ("""CREATE TABLE IF NOT EXISTS staging_events
                                                     method VARCHAR,
                                                     page VARCHAR,
                                                     registration VARCHAR(15),
-                                                    sessionId INT SORT KEY DIST KEY,
+                                                    sessionId INT,
                                                     song VARCHAR,
                                                     status INT,
                                                     ts TIMESTAMP,
-                                                    userAgent VARCHAR,
+                                                    userAgent VARCHAR DISTKEY,  -- not sure, same as for songplays
                                                     userId INT
+                                                    );
 """)
 
 staging_songs_table_create = ("""CREATE TABLE IF NOT EXISTS staging_songs
@@ -55,7 +56,7 @@ staging_songs_table_create = ("""CREATE TABLE IF NOT EXISTS staging_songs
                                                  artist_longitude DECIMAL,
                                                  artist_location VARCHAR,
                                                  artist_name VARCHAR,
-                                                 song_id VARCHAR(18) SORT KEY DIST KEY,
+                                                 song_id VARCHAR(18) DISTKEY,
                                                  title VARCHAR,
                                                  duration DECIMAL,
                                                  year INT
@@ -65,9 +66,9 @@ staging_songs_table_create = ("""CREATE TABLE IF NOT EXISTS staging_songs
 # Fact Table
 
 songplay_table_create = ("""CREATE TABLE IF NOT EXISTS songplays
-                                          (songplay_id IDENTITY(0,1) PRIMARY KEY,
+                                          (songplay_id INT IDENTITY(0,1) PRIMARY KEY,
                                            start_time TIMESTAMP,
-                                           user_id INT NOT NULL,
+                                           user_id INT NOT NULL DISTKEY,  -- good starting point for queries
                                            level VARCHAR,
                                            song_id VARCHAR(18),
                                            artist_id VARCHAR(18),
@@ -155,15 +156,15 @@ songplay_table_insert = ("""INSERT INTO songplays
                                  user_agent)
                             SELECT
                                  DISTINCT e.ts,
-                                 e.user_id,
+                                 e.userId,
                                  e.level,
                                  s.song_id,
                                  s.artist_id,
-                                 e.session_id,
+                                 e.sessionId,
                                  e.location,
-                                 e.user_agent
-                            FROM staging_event AS e
-                            JOIN staging_song AS s
+                                 e.userAgent
+                            FROM staging_events AS e
+                            JOIN staging_songs AS s
                                 ON e.artist = s.artist_name
                             WHERE e.page = 'NextSong'
 """)
@@ -175,14 +176,14 @@ user_table_insert = ("""INSERT INTO users
                              gender,
                              level)
                         SELECT
-                             DISTINCT e.user_id,
-                             e.first_name,
-                             e.last_name,
+                             DISTINCT e.userId,
+                             e.firstName,
+                             e.lastName,
                              e.gender,
                              e.level
                         FROM staging_events AS e
                         WHERE e.page = 'NextSong'
-                        AND e.user_id IS NOT NULL
+                        AND e.userId IS NOT NULL
 """)
 
 song_table_insert = ("""INSERT INTO songs
@@ -192,11 +193,11 @@ song_table_insert = ("""INSERT INTO songs
                              year,
                              duration)
                         SELECT
-                             DISTINCT s.song_id
+                             DISTINCT s.song_id,
                              s.title,
                              s.artist_id,
                              s.year,
-                             s.duration,
+                             s.duration
                         FROM staging_songs AS s
                         WHERE s.song_id IS NOT NULL
 """)
@@ -226,12 +227,12 @@ time_table_insert = ("""INSERT INTO time
                              year,
                              weekday)
                         SELECT
-                             DISTINCT e.ts
-                             EXTRACT(hour FROM e.ts)
-                             EXTRACT(day FROM e.ts)
-                             EXTRACT(week FROM e.ts)
-                             EXTRACT(month FROM e.ts)
-                             EXTRACT(year FROM e.ts)
+                             DISTINCT e.ts,
+                             EXTRACT(hour FROM e.ts),
+                             EXTRACT(day FROM e.ts),
+                             EXTRACT(week FROM e.ts),
+                             EXTRACT(month FROM e.ts),
+                             EXTRACT(year FROM e.ts),
                              EXTRACT(weekday FROM e.ts)
                         FROM staging_events AS e
                         WHERE page = 'NextSong'
