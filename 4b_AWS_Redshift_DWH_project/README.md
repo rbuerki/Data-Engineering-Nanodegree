@@ -120,7 +120,7 @@ Copy `dwh.cfg.example` to `dwh.cfg`, and fill the settings for:
 
 ## Run
 
-_Script to create the database tables or to reset the database:
+Script to create the database tables or to reset the database:
 
 ``` sh
 ./create_tables.py
@@ -131,3 +131,5 @@ ETL pipeline to populate data into the tables:
 ``` sh
 ./etl.py
 ```
+
+(For creating and deleting the cluster before beginning and after finishing the project the `AWS_create_Redshift_Cluster.ipynb` was used.)
