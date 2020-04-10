@@ -6,6 +6,7 @@ from configparser import ConfigParser
 
 
 def config(filename="dwh.cfg", section="CLUSTER"):
+    """Read and return necessary parameters for connecting to the database."""
     # Create a parser to read config file
     parser = ConfigParser()
     parser.read(filename)
@@ -23,7 +24,7 @@ def config(filename="dwh.cfg", section="CLUSTER"):
 
 
 def connect():
-    """ Connect to the Redshift cluster. Return cursor and connection."""
+    """Connect to the Redshift cluster. Return cursor and connection objects."""
     conn = None
     try:
         # Read connection parameters
@@ -51,7 +52,7 @@ def connect():
 
 
 def close(cur, conn):
-    """Close the communication with the PostgreSQL database."""
+    """Close the communication with the database."""
     try:
         cur.close()
 
