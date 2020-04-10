@@ -145,6 +145,8 @@ staging_songs_copy = (f"""
 
 # INSERT INTO FINAL TABLES
 
+# Note: I use DISTINCT statement to handle duplicates
+
 songplay_table_insert = ("""INSERT INTO songplays
                                 (start_time,
                                  user_id,
