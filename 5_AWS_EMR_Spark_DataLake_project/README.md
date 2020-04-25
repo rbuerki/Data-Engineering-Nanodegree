@@ -4,7 +4,6 @@
 
 A music streaming startup, Sparkify, has grown their user base and song database even more and want to move their data warehouse to a data lake. Their data resides in S3, in a directory of JSON logs on user activity on the app, as well as a directory with JSON metadata on the songs in their app.
 
-
 This project will extract data from S3, transform it using Spark and store data back into a S3 data lake using the parquet format._
 
 After setting up an AWS EMR cluster, the task is building an ETL pipeline that:
