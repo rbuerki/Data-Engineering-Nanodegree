@@ -84,8 +84,7 @@ A single entry has the following structure:
 
 (Note: data is not included in this repository.)
 
-## Schema --- UPDATE HERE --- 
-
+## Schema
 
 Final fact and dimension tables should be following a star schema with an analytics focus. It is defined as follows:
 
@@ -110,24 +109,18 @@ Final fact and dimension tables should be following a star schema with an analyt
 
 ## Build [to be re-defined, WIP]
 
-This project runs with **Python 3.6** or higher on an **AWS Redshift Cluster**.
-
-The project python dependencies can be installed with help of the envirment.yml (conda) or requirements.txt (pip).
+This project ran on an **AWS EMR Cluster 6.0** (Hadoop 3.2, Spark 2.4, Python 3).
 
 ## Config
 
-Copy `dwh.cfg.example` to `dwh.cfg`, and fill the settings for:
-
-- Cluster Creation on `[DWH]` and `[AWS]`
-- Cluster Connection on `[CLUSTER]`
-- Your ARN to provide S3 access from Redshift on `[IAM_ROLE]`
+Copy `dwh.cfg.example` to `dwh.cfg`, and fill the settings for S3 access.
 
 ## Run
 
-Script to create the database tables or to reset the database:
+To execute the pipeline, run from EMR:
 
 ``` sh
-./create_tables.py
+/usr/bin/spark-submit --master yarn etl.py
 ```
 
 ETL pipeline to populate data into the tables:
