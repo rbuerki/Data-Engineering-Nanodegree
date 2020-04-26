@@ -10,14 +10,15 @@ from pyspark.sql.functions import (year,
                                    weekofyear,
                                    dayofweek,
                                    )
-from pysplark.sql.types import TimestampType
+from pyspark.sql.types import TimestampType
 from schemas import song_data_schema, log_data_schema
 
-config = configparser.ConfigParser()
-config.read('dl.cfg')
 
-os.environ['AWS_ACCESS_KEY_ID'] = config['AWS_ACCESS_KEY_ID']
-os.environ['AWS_SECRET_ACCESS_KEY'] = config['AWS_SECRET_ACCESS_KEY']
+config = configparser.ConfigParser()
+config.read("dl.cfg")
+
+os.environ["AWS_ACCESS_KEY_ID"] = config["AWS"].get("AWS_ACCESS_KEY_ID")
+os.environ["AWS_SECRET_ACCESS_KEY"] = config["AWS"].get("AWS_SECRET_ACCESS_KEY")
 
 
 def create_spark_session():
@@ -159,8 +160,8 @@ def process_log_data(spark, input_data, output_data):
                      "artist_id",
                      col("name").alias("artist_name"),
                      "duration"
-                     ).drop_duplicates()
-             )
+                     )
+             ).drop_duplicates()
 
     songplays_table = (df
                        .join(songs,
