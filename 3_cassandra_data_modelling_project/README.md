@@ -2,7 +2,6 @@
 
 The goal of this very simple project ist to develop small NoSQL-DB for analyzing / answering three specific queries. This project starts with an ETL part and then creates a small **Cassandra keyspace (3 tables)** from a directory of csv files, containing logs on user activity and metadata on the songs in a music streaming app. (Note: The data is not included in this repository.)
 
-
 ## Build
 
 The project consists of one Jupyter Notebook. It runs with **Python 3.6** or higher and **Cassandra Database**.
