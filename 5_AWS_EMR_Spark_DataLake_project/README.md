@@ -121,11 +121,3 @@ To execute the pipeline, run from EMR:
 ``` sh
 /usr/bin/spark-submit --master yarn etl.py
 ```
-
-ETL pipeline to populate data into the tables:
-
-``` sh
-./etl.py
-```
-
-(For creating and deleting the cluster before beginning and after finishing the project the `AWS_create_Redshift_Cluster.ipynb` was used.)
