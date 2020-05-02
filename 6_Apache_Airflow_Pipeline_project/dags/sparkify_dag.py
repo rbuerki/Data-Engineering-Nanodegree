@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import os
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators import (StageToRedshiftOperator,
@@ -75,22 +74,38 @@ load_songplays_table = LoadFactOperator(
 
 load_user_dimension_table = LoadDimensionOperator(
     task_id='Load_user_dim_table',
-    dag=dag
+    dag=dag,
+    redshift_conn_id="redshift",
+    destination_table="users",
+    sql_statement=SqlQueries.user_table_insert,
+    update_mode="insert"
 )
 
 load_song_dimension_table = LoadDimensionOperator(
     task_id='Load_song_dim_table',
-    dag=dag
+    dag=dag,
+    redshift_conn_id="redshift",
+    destination_table="songs",
+    sql_statement=SqlQueries.song_table_insert,
+    update_mode="insert"
 )
 
 load_artist_dimension_table = LoadDimensionOperator(
     task_id='Load_artist_dim_table',
-    dag=dag
+    dag=dag,
+    redshift_conn_id="redshift",
+    destination_table="artists",
+    sql_statement=SqlQueries.artist_table_insert,
+    update_mode="insert"
 )
 
 load_time_dimension_table = LoadDimensionOperator(
     task_id='Load_time_dim_table',
-    dag=dag
+    dag=dag,
+    redshift_conn_id="redshift",
+    destination_table="time",
+    sql_statement=SqlQueries.time_table_insert,
+    update_mode="insert"
 )
 
 run_quality_checks = DataQualityOperator(
