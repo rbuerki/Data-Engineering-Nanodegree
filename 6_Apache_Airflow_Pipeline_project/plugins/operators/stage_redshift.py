@@ -5,6 +5,20 @@ from airflow.utils.decorators import apply_defaults
 
 
 class StageToRedshiftOperator(BaseOperator):
+    """Transfer data from S3 to staging tables in redshift database.
+ 
+    Parameters:
+    -----------
+    - aws_credentials_id: Conn Id of the Airflow connection to Amazon Web Services
+    - redshift_conn_id: Conn Id of the Airflow connection to redshift database
+    - table: name of the staging table to populate
+    - s3_bucket: name of S3 bucket, e.g. "udacity-dend"
+    - s3_key: name of S3 key. This field is templatable when context is enabled
+    - json_format (optional): path to JSONpaths file, defaults to "auto"
+    
+    Returns: None
+
+    """
     ui_color = '#358140'
     template_fields = ("s3_key")
 
@@ -15,7 +29,7 @@ class StageToRedshiftOperator(BaseOperator):
                  table="",
                  s3_bucket="",
                  s3_key="",
-                 json_format="",
+                 json_format="auto",
                  *args, **kwargs):
 
         super(StageToRedshiftOperator, self).__init__(*args, **kwargs)
@@ -26,13 +40,14 @@ class StageToRedshiftOperator(BaseOperator):
         self.s3_key = s3_key
         self.json_format = json_format
 
-    def execute(self, context):
+    def execute(self, context):        
         aws_hook = AwsHook(self.aws_credentials_id)
         credentials = aws_hook.get_credentials()
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
+        # Set S3 path based on rendered key
         rendered_key = self.s3_key.format(**context)
         s3_path = "s3://{}/{}".format(self.s3_bucket, rendered_key)
-        
+
         sql_staging = f"""
             COPY {self.table}
             FROM '{s3_path}'
