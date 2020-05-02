@@ -6,7 +6,7 @@ from airflow.operators import (StageToRedshiftOperator,
                                LoadDimensionOperator,
                                DataQualityOperator
                                )
-from helpers import SqlQueries
+from helpers import SqlQueries, DataChecks
 
 # Note: Credentials are set with Airflow Hooks
 # config = configparser.ConfigParser()
