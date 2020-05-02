@@ -37,7 +37,7 @@ class LoadDimensionOperator(BaseOperator):
 
     def execute(self, context):
         redshift = PostgresHook(self.redshift_conn_id)
-        sql_query = f"INSERT INTO {self.destination_table} ({self.sql_statement})"
+        sql_query = f"INSERT INTO {self.destination_table} {self.sql_statement}"
         if self.update_mode == "overwrite":
             sql_query = f"TRUNCATE {self.destination_table}; {sql_query}"
 
