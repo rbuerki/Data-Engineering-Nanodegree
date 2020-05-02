@@ -15,6 +15,8 @@ from helpers import SqlQueries
 # os.environ["AWS_KEY"] = config["AWS"].get("AWS_ACCESS_KEY_ID")
 # os.environ["AWS_SECRET"] = config["AWS"].get("AWS_SECRET_ACCESS_KEY")
 
+# Define DAG
+
 default_args = {
     "owner": "rbuerki",
     "depends_on_past": False,
@@ -33,6 +35,8 @@ dag = DAG('sparkify_dag',
           schedule_interval='0 * * * *'
           )
 
+# Define Tasks
+
 start_operator = DummyOperator(
     task_id='Begin_execution',
     dag=dag
@@ -40,12 +44,25 @@ start_operator = DummyOperator(
 
 stage_events_to_redshift = StageToRedshiftOperator(
     task_id='Stage_events',
-    dag=dag
+    dag=dag,
+    provide_context=True,  # not to forget
+    table="staging_events",
+    redshift_conn_id="redshift",
+    aws_credentials_id="aws_credentials",
+    s3_bucket="udacity-dend",
+    s3_key="log_data/{execution_date.year}/{execution_date.month}/",
+    json_format="s3://udacity-dend/log_json_path.json"
 )
 
 stage_songs_to_redshift = StageToRedshiftOperator(
     task_id='Stage_songs',
-    dag=dag
+    dag=dag,
+    provide_context=False,  # not necessary here
+    table="staging_songs",
+    redshift_conn_id="redshift",
+    aws_credentials_id="aws_credentials",
+    s3_bucket="udacity-dend",
+    s3_key="song_data/"
 )
 
 load_songplays_table = LoadFactOperator(
@@ -84,6 +101,7 @@ end_operator = DummyOperator(
 )
 
 # Define dependencies
+
 start_operator >> stage_events_to_redshift
 start_operator >> stage_songs_to_redshift
 stage_events_to_redshift >> load_songplays_table
