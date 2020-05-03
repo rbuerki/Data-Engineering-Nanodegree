@@ -4,7 +4,6 @@ from airflow.utils.decorators import apply_defaults
 
 
 class DataQualityOperator(BaseOperator):
-
     """Run data quality checks on one or more tables.
 
     Parameters:
@@ -29,13 +28,13 @@ class DataQualityOperator(BaseOperator):
                  *args, **kwargs):
 
         super(DataQualityOperator, self).__init__(*args, **kwargs)
-        self.redshift_conn_id = redshift_conn_id
-        self.sql_query_list = sql_query_list
-        self.tableList = table_list
-        self.expected_results = expected_results
+        self.redshift_conn_id=redshift_conn_id
+        self.sql_query_list=sql_query_list
+        self.tableList=table_list
+        self.expected_results=expected_results
 
     def execute(self, context):
-        redshift = PostgresHook(self.redshift_conn_id)
+        redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
 
         self.log.info('DataQualityOperator not implemented yet')
 
