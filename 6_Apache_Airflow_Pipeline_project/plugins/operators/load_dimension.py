@@ -41,5 +41,5 @@ class LoadDimensionOperator(BaseOperator):
         if self.update_mode == "overwrite":
             sql_query = f"TRUNCATE {self.destination_table}; {sql_query}"
 
-        self.log.info(f"Loading data into {self.destination} table")
+        self.log.info(f"Loading data into {self.destination_table}")
         redshift.run(sql_query)
