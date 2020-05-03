@@ -106,7 +106,7 @@ Final fact and dimension tables should be following a star schema with an analyt
 **time** - timestamps of records in songplays broken down into specific units
 *start_time, hour, day, week, month, year, weekday*
 
-## Build 
+## Build
 
 Python 3.6. or higher - Used to code DAG's and its dependecies
 Apache Airflow 1.10.2 - Workflows platform
