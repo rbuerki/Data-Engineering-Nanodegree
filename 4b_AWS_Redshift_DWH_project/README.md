@@ -79,8 +79,6 @@ A single entry has the following structure:
 }
 ```
 
-(Note: data is not included in this repository.)
-
 ## Schema
 
 Final fact and dimension tables should be following a star schema with an analytics focus. It is defined as follows:
@@ -104,7 +102,7 @@ Final fact and dimension tables should be following a star schema with an analyt
 **time** - timestamps of records in songplays broken down into specific units
 *start_time, hour, day, week, month, year, weekday*
 
-## Build [to be re-defined, WIP]
+## Build
 
 This project runs with **Python 3.6** or higher on an **AWS Redshift Cluster**.
 
