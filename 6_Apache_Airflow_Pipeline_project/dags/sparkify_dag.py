@@ -19,7 +19,8 @@ from helpers import SqlQueries, DataChecks
 default_args = {
     "owner": "rbuerki",
     "depends_on_past": False,
-    "start_date": datetime(2019, 1, 12),
+    'start_date': datetime(2018, 11, 1),
+    'end_date': datetime(2018, 11, 2),
     "retries": 5,
     "retry_delay": timedelta(minutes=5),
     "catchup": False,
@@ -49,19 +50,20 @@ stage_events_to_redshift = StageToRedshiftOperator(
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
     s3_bucket="udacity-dend",
-    s3_key="log_data/{execution_date.year}/{execution_date.month}/",
-    json_format="s3://udacity-dend/log_json_path.json"
+    # load data based on execution time only
+    s3_key="log_data/{execution_date.year}/{execution_date.month}/{ds}-events.json",
+    json_format="'s3://udacity-dend/log_json_path.json'"
 )
 
 stage_songs_to_redshift = StageToRedshiftOperator(
     task_id='Stage_songs',
     dag=dag,
-    provide_context=False,  # not necessary here
+    provide_context=True,  # not necessary here
     table="staging_songs",
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
     s3_bucket="udacity-dend",
-    s3_key="song_data/"
+    s3_key="song_data/A/A/A/"  # Load only a small subset
 )
 
 load_songplays_table = LoadFactOperator(
