@@ -81,8 +81,6 @@ A single entry has the following structure:
 }
 ```
 
-(Note: data is not included in this repository.)
-
 ## Schema
 
 Final fact and dimension tables should be following a star schema with an analytics focus. It is defined as follows:
@@ -106,7 +104,7 @@ Final fact and dimension tables should be following a star schema with an analyt
 **time** - timestamps of records in songplays broken down into specific units
 *start_time, hour, day, week, month, year, weekday*
 
-## Build [to be re-defined, WIP]
+## Build
 
 This project ran on an **AWS EMR Cluster 6.0** (Hadoop 3.2, Spark 2.4, Python 3).
 
