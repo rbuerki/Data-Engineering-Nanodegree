@@ -1,4 +1,3 @@
-
 class DataChecks:
     """Store data quality check statements and expected results."""
 
