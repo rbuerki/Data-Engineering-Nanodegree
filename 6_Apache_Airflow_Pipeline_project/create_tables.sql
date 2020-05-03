@@ -1,3 +1,7 @@
+/* RUN THESE STATEMENTS IN THE REDSHIFT QUERY EDITOR BEFORE STARTING THE DAG
+(there are better defined statements in earlier projects, 
+but these were provided) */
+
 CREATE TABLE public.artists (
 	artistid varchar(256) NOT NULL,
 	name varchar(256),

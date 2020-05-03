@@ -14,13 +14,14 @@ class StageToRedshiftOperator(BaseOperator):
     - table: name of the staging table to populate
     - s3_bucket: name of S3 bucket, e.g. "udacity-dend"
     - s3_key: name of S3 key. This field is templatable when context is enabled
-    - json_format (optional): path to JSONpaths file, defaults to "auto"
+    - json_format (optional): path to JSONpaths file, defaults to "'auto'"
+        (don't forget the extra single quotes!)
 
     Returns: None
 
     """
     ui_color = '#358140'
-    template_fields = ("s3_key")
+    template_fields = ("s3_key",)
 
     @apply_defaults
     def __init__(self,
@@ -29,13 +30,13 @@ class StageToRedshiftOperator(BaseOperator):
                  table="",
                  s3_bucket="",
                  s3_key="",
-                 json_format="auto",
+                 json_format="'auto'",
                  *args, **kwargs):
 
         super(StageToRedshiftOperator, self).__init__(*args, **kwargs)
-        self.table = table
         self.redshift_conn_id = redshift_conn_id
         self.aws_credentials_id = aws_credentials_id
+        self.table = table
         self.s3_bucket = s3_bucket
         self.s3_key = s3_key
         self.json_format = json_format
@@ -58,9 +59,6 @@ class StageToRedshiftOperator(BaseOperator):
             REGION 'us-west-2'
             FORMAT AS JSON {self.json_format};
             """
-
-        self.log.info("Clearing data from destination Redshift table")
-        redshift.run(f"DELETE * FROM {self.table}")
 
         self.log.info("Copying data from S3 to Redshift")
         redshift.run(sql_staging)
