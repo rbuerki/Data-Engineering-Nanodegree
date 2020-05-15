@@ -52,7 +52,9 @@ Data is collected for song metadata and user activities, using JSON files. The d
 
 ## Database Schema to Create
 
-Fact and dimension tables following a star schema with an analytics focus.
+We create fact and dimension tables following a star schema with an analytics focus:
+
+![ERD](../Song_ERD.png)
 
 ### Fact Table
 
@@ -75,7 +77,7 @@ Fact and dimension tables following a star schema with an analytics focus.
 
 ## Build
 
-This project runs with **Python 3.6** or higher and **PosgreSQL Database**.
+This project runs with **Python 3.6** or higher, **psycopg2** and a **PosgreSQL Database**.
 
 The project python dependencies can be installed with help of the `envirment.yml` (conda) or `requirements.txt` (pip).
 
@@ -98,3 +100,8 @@ One way to verify the data, is by using the provided `test.ipynb` jupyter notebo
 ``` sh
 ./z_dev_notebooks/jupyter notebook
 ```
+
+## Special Notes (to myself)
+
+- Note the `ON CONFLICT` settings in the Insert Queries. This differs quite a bit from SQL SERVER behaviour where I worked with MERGE statements.
+- For some tipps & tricks / best practices when defining a star schema look at the first notebook of project 2.
