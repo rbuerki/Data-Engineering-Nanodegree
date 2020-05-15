@@ -12,7 +12,7 @@ After setting up an AWS Redshift cluster, the task is building an ETL pipeline t
 
 The big difference to the first project (with a local postgres database) is, that the, much bigger, data is now distributed over different nodes. So you have to think about how to optimize the partitioning and table design.
 
-(Two demo notebooks are included to give some advice / background on this topic. They are not directly related to the project.)
+(Two demo notebooks are included to give some advice / background on this topic. They are not directly related to the project. See also resources in the end of this Readme.)
 
 ## Input data
 
@@ -76,3 +76,13 @@ ETL pipeline to populate data into the tables:
 ```
 
 (For creating and deleting the cluster before beginning and after finishing the project the `1-Create_Redshift_Cluster.ipynb` was used.)
+
+## Additional Resources
+
+Some good resources:
+https://aws.amazon.com/blogs/big-data/top-8-best-practices-for-high-performance-etl-processing-using-amazon-redshift/
+https://aws.amazon.com/blogs/big-data/how-i-built-a-data-warehouse-using-amazon-redshift-and-aws-services-in-record-time/
+https://panoply.io/data-warehouse-guide/redshift-etl/
+https://docs.aws.amazon.com/redshift/latest/dg/c_best-practices-defining-constraints.html
+http://www.sqlhaven.com/amazon-redshift-what-you-need-to-think-before-defining-primary-key/
+https://d1.awsstatic.com/whitepapers/enterprise-data-warehousing-on-aws.pdf
