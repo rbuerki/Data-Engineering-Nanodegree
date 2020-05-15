@@ -1,6 +1,6 @@
 # Project: Data Modeling with Postgres
 
-The goal of this project ist to develop an ETL pipeline for analyzing data for a music streaming app. This project creates a **star-schema Postgres database** from a directory of JSON files, containing logs on user activity and metadata on the songs in the app.
+The goal of this project ist to develop a simple ETL pipeline for analyzing data for a music streaming app (called "sparkify"). We create a **star-schema Postgres database** which is populated with data from a local directory of JSON files, containing logs on user activity and metadata on the songs in the app.
 
 ## Input data
 
@@ -48,9 +48,9 @@ Data is collected for song metadata and user activities, using JSON files. The d
 }
 ```
 
-(Note: data is not included in this repository.)
+(Note: The data is not included in this repository.)
 
-## Schema
+## Database Schema to Create
 
 Fact and dimension tables following a star schema with an analytics focus.
 
@@ -93,7 +93,7 @@ ETL pipeline to populate data into the tables:
 ./etl.py
 ```
 
-One way to verify the data is using the provided `test.ipynb` jupyter notebook in the development folder:
+One way to verify the data, is by using the provided `test.ipynb` jupyter notebook in the development folder:
 
 ``` sh
 ./z_dev_notebooks/jupyter notebook
