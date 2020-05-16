@@ -4,6 +4,10 @@ In this very simple project a small NoSQL-DB is created to analyze / answer thre
 
 The main purpose of this exercice is to emphasize the difference between NoSQL an RDBMS. NoSQL does _not_ allow table JOINs, GROUP BYs, subqueries and the like. So you have to organize your tables carefully around specific queries that have to be formulated before you construct the DB.
 
+## Input data
+
+For this project we work with the logs on user activities only (see README in project 1 for details on the data structure). This time also they are stored in CSV format and not in JSON format.
+
 ## Build
 
 The project consists of one Jupyter Notebook. It runs with **Python 3.6** or higher and a **Cassandra Database**.
