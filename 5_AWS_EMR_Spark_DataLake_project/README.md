@@ -47,29 +47,6 @@ Final fact and dimension tables follow the same star schema as in projects 1 and
 
 ![ERD](../Song_ERD.png)
 
-## Schema
-
-Final fact and dimension tables should be following a star schema with an analytics focus. It is defined as follows:
-
-### Fact Table
-
-**songplays** - records in log data associated with song plays i.e. records with page NextSong
-*songplay_id, start_time, user_id, level, song_id, artist_id, session_id, location, user_agent*
-
-### Dimension Tables
-
-**users** - users in the app
-*user_id, first_name, last_name, gender, level*
-
-**songs** - songs in music database
-*song_id, title, artist_id, year, duration*
-
-**artists** - artists in music database
-*artist_id, name, location, lattitude, longitude*
-
-**time** - timestamps of records in songplays broken down into specific units
-*start_time, hour, day, week, month, year, weekday*
-
 ## Build
 
 This project ran on an **AWS EMR Cluster 6.0** (Hadoop 3.2, Spark 2.4, Python 3).
