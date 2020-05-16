@@ -4,7 +4,7 @@
 
 Our music streaming startup, Sparkify, has grown their user base and song database and move their processes and data onto the cloud. The data resides in S3, in a directory of JSON logs on user activity on the app, as well as a directory with JSON metadata on the songs in their app.
 
-After setting up an AWS Redshift cluster on an AWS EMR cluster, the task is building an ETL pipeline that:
+After setting up an AWS Redshift cluster (based on EC2 instances), the task is building an ETL pipeline that:
 
 - extracts the JSON data from S3
 - stages them in Redshift, and
