@@ -12,11 +12,11 @@ After setting up an AWS Redshift cluster (based on EC2 instances), the task is b
 
 The big difference to the first project (with a local postgres database) is, that the, much bigger, data is now distributed over different nodes. So you have to think about how to optimize the partitioning and table design with DIST and SORT Keys and a general distribution strategy.
 
-(Two demo notebooks are included to give some advice / background on this topic. They are not directly related to the project. See also resources in the end of this Readme.)
+(Two demo notebooks are included to give some advice / background on this topic. They are not directly related to the project.)
 
 ## Input data
 
-Data is collected for song metadata and user activities, using JSON files. The data comes basically in the same format as in project 1, but now resides in AWS S3. Here are the S3 links for each:
+Data is collected for song metadata and user activities, using JSON files. The data comes basically in the same structure as in project 1, but now resides in AWS S3. Here are the S3 links for each:
 
 - Song data: `s3://udacity-dend/song_data`
 - Log data: `s3://udacity-dend/log_data`
@@ -76,13 +76,3 @@ ETL pipeline to populate data into the tables:
 ```
 
 (For creating and deleting the cluster before beginning and after finishing the project the `1-Create_Redshift_Cluster.ipynb` was used.)
-
-## Additional Resources
-
-Some good resources:
-https://aws.amazon.com/blogs/big-data/top-8-best-practices-for-high-performance-etl-processing-using-amazon-redshift/
-https://aws.amazon.com/blogs/big-data/how-i-built-a-data-warehouse-using-amazon-redshift-and-aws-services-in-record-time/
-https://panoply.io/data-warehouse-guide/redshift-etl/
-https://docs.aws.amazon.com/redshift/latest/dg/c_best-practices-defining-constraints.html
-http://www.sqlhaven.com/amazon-redshift-what-you-need-to-think-before-defining-primary-key/
-https://d1.awsstatic.com/whitepapers/enterprise-data-warehousing-on-aws.pdf
