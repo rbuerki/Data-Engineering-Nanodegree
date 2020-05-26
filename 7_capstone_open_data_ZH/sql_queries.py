@@ -18,9 +18,9 @@ config.read_file(open('dwh.cfg'))
 drop_dimDate = "DROP TABLE IF EXISTS dimDate;"
 drop_dimLocation = "DROP TABLE IF EXISTS dimLocation;"
 drop_dimTime = "DROP TABLE IF EXISTS dimTime;"
-drop_factCounts = "DROP TABLE IF EXISTS factCounts;"
+drop_factCount = "DROP TABLE IF EXISTS factCount;"
 drop_stagingNonMotCounts = "DROP TABLE IF EXISTS stagingNonMotCounts;"
-drop_stagingNonMotLocations = "DROP TABLE IF EXISTS stagingNonMotLocations;"
+drop_stagingNonMotLocation = "DROP TABLE IF EXISTS stagingNonMotLocation;"
 
 
 # CREATE TABLES
@@ -46,7 +46,7 @@ create_stagingNonMotCounts = (
     """
 )
 
-create_stagingNonMotLocations = (
+create_stagingNonMotLocation = (
     """
     CREATE TABLE IF NOT EXISTS staging_NonMotLocations(
         abkuerzung CHAR(8),
@@ -65,14 +65,14 @@ create_stagingNonMotLocations = (
 
 # Fact Table
 
-create_factCounts = (
+create_factCount = (
     """
-    CREATE TABLE IF NOT EXISTS factCounts(
+    CREATE TABLE IF NOT EXISTS factCount(
         counts_id INT IDENTITY(0,1) PRIMARY KEY,
-        date_pk INT REFERENCES dimDate (date_pk),
-        time_pk INT REFERENCES dimTime (time_pk),
-        location_pk SMALLINT REFERENCES dimLocation (location_pk),
-        type CHAR(1),  ---------------------------------------------------------- TO DO
+        date_key INT REFERENCES dimDate (date_key),
+        time_key INT REFERENCES dimTime (time_key),
+        location_key SMALLINT REFERENCES dimLocation (location_key),
+        type CHAR(1)
         count_total SMALLINT,
         count_in SMALLINT,
         count_out SMALLINT
@@ -85,11 +85,11 @@ create_factCounts = (
 create_dimLocation = (
     """
     CREATE TABLE IF NOT EXISTS dimLocation(
-        location_pk SERIAL PRIMARY KEY,
-        location_id SMALLINT NOT NULL
+        location_key SERIAL PRIMARY KEY,
+        location_id SMALLINT NOT NULL,
         location_name VARCHAR(50) NOT NULL,
         location_code VARCHAR(8) NOT NULL,
-        location_type CHAR(3) NOT NULL,
+        count_type CHAR(3) NOT NULL,
         latitude DECIMAL NOT NULL,
         longitude DECIMAL NOT NULL,
         active_from DATE NOT NULL,
@@ -102,7 +102,7 @@ create_dimLocation = (
 create_dimDate = (
     """
     CREATE TABLE IF NOT EXISTS dimDate(
-        date_pk INT PRIMARY KEY,
+        date_key INT PRIMARY KEY,
         date DATE NOT NULL,
         year SMALLINT NOT NULL,
         quarter SMALLINT NOT NULL,
@@ -131,7 +131,7 @@ create_dimDate = (
 create_dimTime = (
     """
     CREATE TABLE IF NOT EXISTS dimTime(
-        time_pk INT PRIMARY KEY,
+        time_key INT PRIMARY KEY,
         time_of_day CHAR(5) NOT NULL,
         hour SMALLINT NOT NULL,
         half_hour CHAR(13) NOT NULL,
@@ -171,31 +171,11 @@ staging_songs_copy = (f"""
 
 # Note: I use DISTINCT statement to handle duplicates
 
-songplay_table_insert = ("""INSERT INTO songplays
-                                (start_time,
-                                 user_id,
-                                 level,
-                                 song_id,
-                                 artist_id,
-                                 session_id,
-                                 location,
-                                 user_agent)
-                            SELECT
-                                 DISTINCT e.ts,
-                                 e.userId,
-                                 e.level,
-                                 s.song_id,
-                                 s.artist_id,
-                                 e.sessionId,
-                                 e.location,
-                                 e.userAgent
-                            FROM staging_events AS e
-                            JOIN staging_songs AS s
-                                 ON e.song = s.title
-                                   AND e.artist = s.artist_name
-                                   AND e.length = s.duration
-                            WHERE e.page = 'NextSong'
-""")
+# songplay_table_insert = ("""I...)
+#                             SELECT
+#                                  DISTINCT e.ts,
+#                                  ...
+# """)
 
 user_table_insert = ("""INSERT INTO users
                             (user_id,
@@ -230,26 +210,75 @@ song_table_insert = ("""INSERT INTO songs
                         WHERE s.song_id IS NOT NULL
 """)
 
-artist_table_insert = ("""INSERT INTO artists
-                            (artist_id,
-                             name,
-                             location,
-                             latitude,
-                             longitude)
-                          SELECT
-                             DISTINCT s.artist_id,
-                             s.artist_name,
-                             s.artist_location,
-                             s.artist_latitude,
-                             s.artist_longitude
-                          FROM staging_songs AS s
-                          WHERE s.artist_id IS NOT NULL
-""")
+insert_dimLocation = (
+    """
+    INSERT INTO dimLocation(
+        location_key,
+        location_id,
+        location_name,
+        location_code,
+        count_type,
+        latitude,
+        longitude,
+        active_from,
+        active_to,
+        still_active
+    )
+    SELECT
+        DISTINCT sl.id1 AS location_id,
+        sl.bezeichnung AS location_name,
+        sl.abkuerzung AS location_code,
+        LEFT(1, sl.abkuerzung) AS count_type, ----------------------------------------------------------- breaks
+        sl.ost AS latitude,
+        sl.nord AS longitude,
+        sl.von AS active_from
+        sl.bis AS active_to ---------------------- not good
+        CASE ??? AS still_active ---------------
+    FROM stagingNoMotLocation as sl
+    ;
+    """
+)
+
+        abkuerzung CHAR(8),
+        bezeichnung VARCHAR(50),
+        bis TIMESTAMP,
+        fk_zaehler VARCHAR(20),
+        id1 SMALLINT, 
+        richtung_in VARCHAR(50),
+        richtung_out VARCHAR(50),
+        von TIMESTAMP,
+        objectid SMALLINT,
+        korrekturfaktor FLOAT
+
+insert_factCount = (
+    """
+    INSERT INTO factCount(
+        date_key,
+        time_key,
+        location_key,
+        count_type,
+        count_total,
+        count_in,
+        count_out
+    )
+    SELECT
+        TO_CHAR(sc.datum,'yyyymmdd')::INT AS date_key,
+        EXTRACT(HOUR FROM sc.datum)*100 + EXTRACT(MINUTE FROM sc.datum) AS time_key,
+        sc.fk_standort AS sc.location_key,
+        dl.count_type AS count_type,
+        sc.velo_in + sc.velo_out + sc.fuss_in + sc.fuss_out AS count_total,
+        sc.velo_in + sc.fuss_in AS count_in
+        sc.velo_out + sc.fuss_out AS count_out
+    FROM stagingNonMotCount AS sc
+    JOIN dimLocation AS dl
+        ON dl.location_id = sc.fk_standort;
+    """
+)
 
 insert_dimDate = ("""
     INSERT INTO dimDate
     SELECT
-        TO_CHAR(datum,'yyyymmdd')::INT AS date_pk,
+        TO_CHAR(datum,'yyyymmdd')::INT AS date_key,
         datum AS date,
         EXTRACT(year FROM datum) AS year,
         EXTRACT(quarter FROM datum) AS quarter,
@@ -260,7 +289,7 @@ insert_dimDate = ("""
         EXTRACT(DAY FROM datum) AS day_of_month,
         EXTRACT(isodow FROM datum) AS day_of_week,
         TO_CHAR(datum,'TMDay') AS day_name,  -- localized day name
-       	EXTRACT(week FROM datum) AS week_of_year,
+        EXTRACT(week FROM datum) AS week_of_year,
         CASE
             WHEN EXTRACT(isodow FROM datum) IN (6,7) THEN TRUE
             ELSE FALSE
@@ -282,14 +311,13 @@ insert_dimDate = ("""
         FROM GENERATE_SERIES (0, 5475) AS SEQUENCE (DAY)
         GROUP BY SEQUENCE.DAY) DQ
     ORDER BY 1;
-""")
-
+    """
+)
 
 insert_dimTime = ("""
     INSERT INTO dimTime
     SELECT
-        -- Minute of the day (0 - 1439)
-        EXTRACT(HOUR FROM MINUTE)*60 + EXTRACT(MINUTE FROM MINUTE) AS time_pk,
+        EXTRACT(HOUR FROM MINUTE)*60 + EXTRACT(MINUTE FROM MINUTE) AS time_key,
         to_char(MINUTE, 'hh24:mi') AS time_of_day,
         EXTRACT(HOUR FROM MINUTE) AS hour,
         to_char(MINUTE - (EXTRACT(MINUTE FROM MINUTE)::INTEGER % 30 || 'minutes')::INTERVAL, 'hh24:mi') ||
@@ -307,7 +335,8 @@ insert_dimTime = ("""
         GROUP BY SEQUENCE.MINUTE
         ) DQ
     ORDER BY 1;
-""")
+    """
+)
 
 # QUERY LISTS
 
@@ -315,29 +344,28 @@ create_table_queries = [
     create_dimDate,
     create_dimLocation,
     create_dimTime,
-    create_factCounts,
+    create_factCount,
     create_stagingNonMotCounts,
-    create_stagingNonMotLocations
+    create_stagingNonMotLocation
 ]
 
 drop_table_queries = [
     drop_dimDate,
     drop_dimLocation,
     drop_dimTime,
-    drop_factCounts,
+    drop_factCount,
     drop_stagingNonMotCounts,
-    drop_stagingNonMotLocations
+    drop_stagingNonMotLocation
 ]
 
 copy_table_queries = [
-    staging_events_copy,
-    staging_songs_copy
+    copy_stagingNonMotCounts,
+    copy_stagingNonMotLocation
 ]
 
 insert_table_queries = [
-    songplay_table_insert,
-    user_table_insert,
-    song_table_insert,
-    artist_table_insert,
-    time_table_insert
+    insert_dimDate,
+    insert_dimLocation,
+    insert_dimTime,
+    insert_factCount,
 ]
