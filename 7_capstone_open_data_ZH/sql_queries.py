@@ -1,5 +1,5 @@
 
-# set distkeys! in the very end
+# TODO set distkeys! in the very end, replace serial
 
 # import configparser
 
@@ -73,8 +73,8 @@ create_dimLocation = (
         location_name VARCHAR(50) NOT NULL,
         location_code VARCHAR(8) NOT NULL,
         count_type CHAR(3) NOT NULL,
-        latitude DECIMAL NOT NULL,
-        longitude DECIMAL NOT NULL,
+        coord_east DECIMAL NOT NULL,
+        coord_nord DECIMAL NOT NULL,
         active_from DATE NOT NULL,
         active_to DATE NOT NULL,
         still_active BOOLEAN NOT NULL
@@ -129,7 +129,7 @@ create_dimTime = (
 create_factCount = (
     """
     CREATE TABLE IF NOT EXISTS factCount(
-        --counts_id INT IDENTITY(0,1) PRIMARY KEY, ------------------------------
+        --counts_id INT IDENTITY(0,1) PRIMARY KEY, ------------------------------ do I need this?
         counts_id SERIAL PRIMARY KEY,
         date_key INT REFERENCES dimDate (date_key),
         time_key INT REFERENCES dimTime (time_key),
@@ -146,30 +146,29 @@ create_factCount = (
 
 # COPY loads data into a table from data files or from an Amazon DynamoDB table.
 # Read more here: https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html
-# and here: https://docs.aws.amazon.com/redshift/latest/dg/copy-parameters-data-format.html#copy-json-jsonpaths
 
-# copy_stagingNonMotLocation = (
-#     f"""
-#             COPY staging_events
-#             FROM {LOG_DATA}
-#             CREDENTIALS 'aws_iam_role={ARN}'
-#             FORMAT AS JSON {LOG_JSONPATH}
-#             TIMEFORMAT as 'epochmillisecs'
-#             TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
-#             REGION 'us-west-2';
-#     """
-# )
+copy_stagingNonMotLocation = (
+    f"""
+    COPY staging_NonMotLocation
+    FROM {LOC_DATA}
+    CREDENTIALS 'aws_iam_role={ARN}'
+    JSON 'auto'
+    TIMEFORMAT as 'epochmillisecs'
+    TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
+    REGION 'eu-west-1';
+    """
+)
 
-# copy_stagingNonMotCount = (
-#     f"""
-#             COPY staging_songs
-#             FROM {SONG_DATA}
-#             CREDENTIALS 'aws_iam_role={ARN}'
-#             JSON 'auto'
-#             TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
-#             REGION 'us-west-2';
-#     """
-# )
+copy_stagingNonMotCount = (
+    f"""
+    COPY staging_songs
+    FROM {COUNT_DATA_NON_MOT}
+    CREDENTIALS 'aws_iam_role={ARN}'
+    DELIMITER ','
+    TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
+    REGION 'eu-west-1';
+    """
+)
 
 # INSERT INTO FINAL TABLES
 
@@ -183,8 +182,8 @@ insert_dimLocation = (
         location_name,
         location_code,
         count_type,
-        latitude,
-        longitude,
+        coord_east,
+        coord_nord,
         active_from,
         active_to,
         still_active
@@ -193,12 +192,12 @@ insert_dimLocation = (
         DISTINCT sl.id1 AS location_id,
         sl.bezeichnung AS location_name,
         sl.abkuerzung AS location_code,
-        LEFT(1, sl.abkuerzung) AS count_type, ----------------------------------------------------------- breaks
-        sl.ost AS latitude,
-        sl.nord AS longitude,
+        LEFT(sl.abkuerzung, 1) AS count_type,
+        sl.ost AS coord_east,
+        sl.nord AS coord_nord,
         sl.von AS active_from
         sl.bis AS active_to ---------------------- not good
-        CASE ??? AS still_active ---------------
+        -- CASE ??? AS still_active ---------------
     FROM stagingNoMotLocation as sl
     """
 )
