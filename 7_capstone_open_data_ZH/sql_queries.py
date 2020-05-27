@@ -1,11 +1,11 @@
 
-set distkeys! in the very end
+# set distkeys! in the very end
 
-import configparser
+# import configparser
 
 # CONFIG (return dwh configuration in ini format)
-config = configparser.ConfigParser()
-config.read_file(open('dwh.cfg'))
+# config = configparser.ConfigParser()
+# config.read_file(open('dwh.cfg'))
 
 # ARN = config.get("IAM_ROLE", "ARN")
 # LOG_DATA = config.get("S3", "LOG_DATA")
@@ -19,7 +19,7 @@ drop_dimDate = "DROP TABLE IF EXISTS dimDate;"
 drop_dimLocation = "DROP TABLE IF EXISTS dimLocation;"
 drop_dimTime = "DROP TABLE IF EXISTS dimTime;"
 drop_factCount = "DROP TABLE IF EXISTS factCount;"
-drop_stagingNonMotCounts = "DROP TABLE IF EXISTS stagingNonMotCounts;"
+drop_stagingNonMotCount = "DROP TABLE IF EXISTS stagingNonMotCount;"
 drop_stagingNonMotLocation = "DROP TABLE IF EXISTS stagingNonMotLocation;"
 
 
@@ -30,53 +30,36 @@ drop_stagingNonMotLocation = "DROP TABLE IF EXISTS stagingNonMotLocation;"
 
 # Staging Tables
 
-create_stagingNonMotCounts = (
+create_stagingNonMotCount = (
     """
-    CREATE TABLE IF NOT EXISTS staging_NonMotCounts(
-        fk_zaehler VARCHAR(20)
+    CREATE TABLE IF NOT EXISTS staging_NonMotCount(
+        fk_zaehler VARCHAR(20),
         fk_standort SMALLINT,
-        datum DATETIME,
+        datum TIMESTAMP,
         velo_in SMALLINT,
         velo_out SMALLINT,
         fuss_in SMALLINT,
         fuss_out SMALLINT,
         ost INT,
         nord INT
-    );
+    )
     """
 )
 
 create_stagingNonMotLocation = (
     """
-    CREATE TABLE IF NOT EXISTS staging_NonMotLocations(
+    CREATE TABLE IF NOT EXISTS staging_NonMotLocation(
         abkuerzung CHAR(8),
         bezeichnung VARCHAR(50),
         bis TIMESTAMP,
         fk_zaehler VARCHAR(20),
-        id1 SMALLINT, 
+        id1 SMALLINT,
         richtung_in VARCHAR(50),
         richtung_out VARCHAR(50),
         von TIMESTAMP,
         objectid SMALLINT,
         korrekturfaktor FLOAT
-    );
-    """
-)
-
-# Fact Table
-
-create_factCount = (
-    """
-    CREATE TABLE IF NOT EXISTS factCount(
-        counts_id INT IDENTITY(0,1) PRIMARY KEY,
-        date_key INT REFERENCES dimDate (date_key),
-        time_key INT REFERENCES dimTime (time_key),
-        location_key SMALLINT REFERENCES dimLocation (location_key),
-        type CHAR(1)
-        count_total SMALLINT,
-        count_in SMALLINT,
-        count_out SMALLINT
-    );
+    )
     """
 )
 
@@ -95,7 +78,7 @@ create_dimLocation = (
         active_from DATE NOT NULL,
         active_to DATE NOT NULL,
         still_active BOOLEAN NOT NULL
-    );
+    )
     """
 )
 
@@ -123,8 +106,8 @@ create_dimDate = (
         first_day_of_quarter DATE NOT NULL,
         last_day_of_quarter DATE NOT NULL,
         first_day_of_year DATE NOT NULL,
-        last_day_of_year DATE NOT NULL,
-    );
+        last_day_of_year DATE NOT NULL
+    )
     """
 )
 
@@ -137,10 +120,27 @@ create_dimTime = (
         half_hour CHAR(13) NOT NULL,
         quarter_hour CHAR(13) NOT NULL,
         minute SMALLINT NOT NULL
-    );
+    )
     """
 )
 
+# Fact Table
+
+create_factCount = (
+    """
+    CREATE TABLE IF NOT EXISTS factCount(
+        --counts_id INT IDENTITY(0,1) PRIMARY KEY, ------------------------------
+        counts_id SERIAL PRIMARY KEY,
+        date_key INT REFERENCES dimDate (date_key),
+        time_key INT REFERENCES dimTime (time_key),
+        location_key SMALLINT REFERENCES dimLocation (location_key),
+        type CHAR(1),
+        count_total SMALLINT,
+        count_in SMALLINT,
+        count_out SMALLINT
+    )
+    """
+)
 
 # COPY INTO STAGING TABLES
 
@@ -148,67 +148,32 @@ create_dimTime = (
 # Read more here: https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html
 # and here: https://docs.aws.amazon.com/redshift/latest/dg/copy-parameters-data-format.html#copy-json-jsonpaths
 
-staging_events_copy = (f"""
-            COPY staging_events
-            FROM {LOG_DATA}
-            CREDENTIALS 'aws_iam_role={ARN}'
-            FORMAT AS JSON {LOG_JSONPATH}
-            TIMEFORMAT as 'epochmillisecs'
-            TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
-            REGION 'us-west-2';
-""")
+# copy_stagingNonMotLocation = (
+#     f"""
+#             COPY staging_events
+#             FROM {LOG_DATA}
+#             CREDENTIALS 'aws_iam_role={ARN}'
+#             FORMAT AS JSON {LOG_JSONPATH}
+#             TIMEFORMAT as 'epochmillisecs'
+#             TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
+#             REGION 'us-west-2';
+#     """
+# )
 
-staging_songs_copy = (f"""
-            COPY staging_songs
-            FROM {SONG_DATA}
-            CREDENTIALS 'aws_iam_role={ARN}'
-            JSON 'auto'
-            TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
-            REGION 'us-west-2';
-""")
+# copy_stagingNonMotCount = (
+#     f"""
+#             COPY staging_songs
+#             FROM {SONG_DATA}
+#             CREDENTIALS 'aws_iam_role={ARN}'
+#             JSON 'auto'
+#             TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
+#             REGION 'us-west-2';
+#     """
+# )
 
 # INSERT INTO FINAL TABLES
 
-# Note: I use DISTINCT statement to handle duplicates
-
-# songplay_table_insert = ("""I...)
-#                             SELECT
-#                                  DISTINCT e.ts,
-#                                  ...
-# """)
-
-user_table_insert = ("""INSERT INTO users
-                            (user_id,
-                             first_name,
-                             last_name,
-                             gender,
-                             level)
-                        SELECT
-                             DISTINCT e.userId,
-                             e.firstName,
-                             e.lastName,
-                             e.gender,
-                             e.level
-                        FROM staging_events AS e
-                        WHERE e.page = 'NextSong'
-                        AND e.userId IS NOT NULL
-""")
-
-song_table_insert = ("""INSERT INTO songs
-                            (song_id,
-                             title,
-                             artist_id,
-                             year,
-                             duration)
-                        SELECT
-                             DISTINCT s.song_id,
-                             s.title,
-                             s.artist_id,
-                             s.year,
-                             s.duration
-                        FROM staging_songs AS s
-                        WHERE s.song_id IS NOT NULL
-""")
+# Note: I use DISTINCT statement to handle possible duplicates
 
 insert_dimLocation = (
     """
@@ -235,20 +200,8 @@ insert_dimLocation = (
         sl.bis AS active_to ---------------------- not good
         CASE ??? AS still_active ---------------
     FROM stagingNoMotLocation as sl
-    ;
     """
 )
-
-        abkuerzung CHAR(8),
-        bezeichnung VARCHAR(50),
-        bis TIMESTAMP,
-        fk_zaehler VARCHAR(20),
-        id1 SMALLINT, 
-        richtung_in VARCHAR(50),
-        richtung_out VARCHAR(50),
-        von TIMESTAMP,
-        objectid SMALLINT,
-        korrekturfaktor FLOAT
 
 insert_factCount = (
     """
@@ -271,11 +224,12 @@ insert_factCount = (
         sc.velo_out + sc.fuss_out AS count_out
     FROM stagingNonMotCount AS sc
     JOIN dimLocation AS dl
-        ON dl.location_id = sc.fk_standort;
+        ON dl.location_id = sc.fk_standort
     """
 )
 
-insert_dimDate = ("""
+insert_dimDate = (
+    """
     INSERT INTO dimDate
     SELECT
         TO_CHAR(datum,'yyyymmdd')::INT AS date_key,
@@ -310,11 +264,12 @@ insert_dimDate = ("""
     FROM (SELECT '2010-01-01'::DATE+ SEQUENCE.DAY AS datum
         FROM GENERATE_SERIES (0, 5475) AS SEQUENCE (DAY)
         GROUP BY SEQUENCE.DAY) DQ
-    ORDER BY 1;
+    ORDER BY 1
     """
 )
 
-insert_dimTime = ("""
+insert_dimTime = (
+    """
     INSERT INTO dimTime
     SELECT
         EXTRACT(HOUR FROM MINUTE)*60 + EXTRACT(MINUTE FROM MINUTE) AS time_key,
@@ -334,7 +289,7 @@ insert_dimTime = ("""
         FROM generate_series(0,1439) AS SEQUENCE(MINUTE)
         GROUP BY SEQUENCE.MINUTE
         ) DQ
-    ORDER BY 1;
+    ORDER BY 1
     """
 )
 
@@ -345,23 +300,23 @@ create_table_queries = [
     create_dimLocation,
     create_dimTime,
     create_factCount,
-    create_stagingNonMotCounts,
+    create_stagingNonMotCount,
     create_stagingNonMotLocation
 ]
 
 drop_table_queries = [
+    drop_factCount,
     drop_dimDate,
     drop_dimLocation,
     drop_dimTime,
-    drop_factCount,
-    drop_stagingNonMotCounts,
+    drop_stagingNonMotCount,
     drop_stagingNonMotLocation
 ]
 
-copy_table_queries = [
-    copy_stagingNonMotCounts,
-    copy_stagingNonMotLocation
-]
+# copy_table_queries = [
+#     copy_stagingNonMotCount,
+#     copy_stagingNonMotLocation
+# ]
 
 insert_table_queries = [
     insert_dimDate,
