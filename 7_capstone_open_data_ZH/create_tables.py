@@ -1,4 +1,5 @@
-from db_connect_local import connect, close
+# TODO reset to standard
+from db_connect import connect, close
 from sql_queries import create_table_queries, drop_table_queries
 
 
