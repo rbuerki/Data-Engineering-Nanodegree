@@ -29,9 +29,7 @@ def connect():
     try:
         # Read connection parameters
         db_params = config()
-        print(db_params)
         # Connect to the PostgreSQL server
-        print("Connecting to the Redshift cluster ...")
         conn = psycopg2.connect(
             f"host={db_params.get('host')} \
               dbname={db_params.get('db_name')} \
