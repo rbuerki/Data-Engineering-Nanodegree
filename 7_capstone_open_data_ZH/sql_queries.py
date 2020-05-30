@@ -5,7 +5,8 @@ import configparser
 config = configparser.ConfigParser()
 config.read_file(open('dwh.cfg'))
 
-ARN = config.get("IAM_ROLE", "ARN")
+KEY = config.get("AWS", "KEY")
+SECRET = config.get("AWS", "SECRET")
 LOC_DATA = config.get("S3", "LOC_DATA")
 COUNT_DATA_NON_MOT = config.get("S3", "COUNT_DATA_NON_MOT")
 COUNT_DATA_MOT = config.get("S3", "COUNT_DATA_MOT")
@@ -86,7 +87,7 @@ create_dimLocation = (
 create_dimDate = (
     """
     CREATE TABLE IF NOT EXISTS dimDate(
-        date_key INT PRIMARY KEY SORTKEY, 
+        date_key INT PRIMARY KEY SORTKEY,
         date DATE NOT NULL,
         year SMALLINT NOT NULL,
         quarter SMALLINT NOT NULL,
@@ -154,8 +155,8 @@ copy_stagingNonMotLocation = (
     f"""
     COPY staging_NonMotLocation
     FROM {LOC_DATA}
-    CREDENTIALS 'aws_iam_role={ARN}'
-    JSON 'auto'
+    CREDENTIALS 'aws_access_key_id={KEY};aws_secret_access_key={SECRET}'
+    CSV DELIMITER ','
     TIMEFORMAT as 'epochmillisecs'
     TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
     REGION 'eu-west-1';
@@ -165,9 +166,9 @@ copy_stagingNonMotLocation = (
 copy_stagingNonMotCount = (
     f"""
     COPY staging_nonMotCount
-    FROM {COUNT_DATA_NON_MOT}
-    CREDENTIALS 'aws_iam_role={ARN}'
-    DELIMITER ','
+    FROM 's3://raph-dend-zh-data/data/raw/verkehrszaehlungen/non_mot/test.csv' --{COUNT_DATA_NON_MOT}
+    CREDENTIALS 'aws_access_key_id={KEY};aws_secret_access_key={SECRET}'
+    CSV DELIMITER ','
     TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
     REGION 'eu-west-1';
     """
@@ -315,10 +316,10 @@ drop_table_queries = [
     drop_stagingNonMotLocation
 ]
 
-# copy_table_queries = [
-#     copy_stagingNonMotCount,
-#     copy_stagingNonMotLocation
-# ]
+copy_table_queries = [
+    copy_stagingNonMotCount,
+    copy_stagingNonMotLocation
+]
 
 insert_table_queries = [
     insert_dimDate,
