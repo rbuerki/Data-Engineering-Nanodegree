@@ -1,16 +1,14 @@
 
-# TODO set distkeys! in the very end, replace serial
-
-# import configparser
+import configparser
 
 # CONFIG (return dwh configuration in ini format)
-# config = configparser.ConfigParser()
-# config.read_file(open('dwh.cfg'))
+config = configparser.ConfigParser()
+config.read_file(open('dwh.cfg'))
 
-# ARN = config.get("IAM_ROLE", "ARN")
-# LOG_DATA = config.get("S3", "LOG_DATA")
-# LOG_JSONPATH = config.get("S3", "LOG_JSONPATH")
-# SONG_DATA = config.get("S3", "SONG_DATA")
+ARN = config.get("IAM_ROLE", "ARN")
+LOC_DATA = config.get("S3", "LOC_DATA")
+COUNT_DATA_NON_MOT = config.get("S3", "COUNT_DATA_NON_MOT")
+COUNT_DATA_MOT = config.get("S3", "COUNT_DATA_MOT")
 
 
 # DROP TABLES
@@ -35,7 +33,7 @@ create_stagingNonMotCount = (
     CREATE TABLE IF NOT EXISTS staging_NonMotCount(
         fk_zaehler VARCHAR(20),
         fk_standort SMALLINT,
-        datum TIMESTAMP,
+        datum TIMESTAMP SORTKEY DISTKEY,
         velo_in SMALLINT,
         velo_out SMALLINT,
         fuss_in SMALLINT,
@@ -43,6 +41,7 @@ create_stagingNonMotCount = (
         ost INT,
         nord INT
     )
+    DISTSTYLE KEY
     """
 )
 
@@ -60,6 +59,7 @@ create_stagingNonMotLocation = (
         objectid SMALLINT,
         korrekturfaktor FLOAT
     )
+    DISTSTYLE ALL
     """
 )
 
@@ -68,7 +68,7 @@ create_stagingNonMotLocation = (
 create_dimLocation = (
     """
     CREATE TABLE IF NOT EXISTS dimLocation(
-        location_key SERIAL PRIMARY KEY,
+        location_key INT IDENTITY(0,1) PRIMARY KEY, -- counts_id SERIAL PRIMARY KEY,
         location_id SMALLINT NOT NULL,
         location_name VARCHAR(50) NOT NULL,
         location_code VARCHAR(8) NOT NULL,
@@ -79,13 +79,14 @@ create_dimLocation = (
         active_to DATE NOT NULL,
         still_active BOOLEAN NOT NULL
     )
+    DISTSTYLE ALL
     """
 )
 
 create_dimDate = (
     """
     CREATE TABLE IF NOT EXISTS dimDate(
-        date_key INT PRIMARY KEY,
+        date_key INT PRIMARY KEY SORTKEY, 
         date DATE NOT NULL,
         year SMALLINT NOT NULL,
         quarter SMALLINT NOT NULL,
@@ -108,19 +109,21 @@ create_dimDate = (
         first_day_of_year DATE NOT NULL,
         last_day_of_year DATE NOT NULL
     )
+    DISTSTYLE AUTO
     """
 )
 
 create_dimTime = (
     """
     CREATE TABLE IF NOT EXISTS dimTime(
-        time_key INT PRIMARY KEY,
+        time_key INT PRIMARY KEY SORTKEY,
         time_of_day CHAR(5) NOT NULL,
         hour SMALLINT NOT NULL,
         half_hour CHAR(13) NOT NULL,
         quarter_hour CHAR(13) NOT NULL,
         minute SMALLINT NOT NULL
     )
+    DISTSTYLE ALL
     """
 )
 
@@ -129,9 +132,8 @@ create_dimTime = (
 create_factCount = (
     """
     CREATE TABLE IF NOT EXISTS factCount(
-        --counts_id INT IDENTITY(0,1) PRIMARY KEY, ------------------------------ do I need this?
-        counts_id SERIAL PRIMARY KEY,
-        date_key INT REFERENCES dimDate (date_key),
+        counts_id INT IDENTITY(0,1) PRIMARY KEY, -- counts_id SERIAL PRIMARY KEY,
+        date_key INT REFERENCES dimDate (date_key) SORTKEY DISTKEY,
         time_key INT REFERENCES dimTime (time_key),
         location_key SMALLINT REFERENCES dimLocation (location_key),
         type CHAR(1),
@@ -139,6 +141,7 @@ create_factCount = (
         count_in SMALLINT,
         count_out SMALLINT
     )
+    DISTSTYLE KEY
     """
 )
 
@@ -161,7 +164,7 @@ copy_stagingNonMotLocation = (
 
 copy_stagingNonMotCount = (
     f"""
-    COPY staging_songs
+    COPY staging_nonMotCount
     FROM {COUNT_DATA_NON_MOT}
     CREDENTIALS 'aws_iam_role={ARN}'
     DELIMITER ','
@@ -197,7 +200,7 @@ insert_dimLocation = (
         sl.nord AS coord_nord,
         sl.von AS active_from
         sl.bis AS active_to ---------------------- not good
-        -- CASE ??? AS still_active ---------------
+        -- CASE ??? AS still_active --------------- not inside yet
     FROM stagingNoMotLocation as sl
     """
 )
