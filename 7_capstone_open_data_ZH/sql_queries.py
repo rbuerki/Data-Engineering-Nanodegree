@@ -156,8 +156,8 @@ copy_stagingNonMotLocation = (
     COPY staging_NonMotLocation
     FROM {LOC_DATA}
     CREDENTIALS 'aws_access_key_id={KEY};aws_secret_access_key={SECRET}'
-    CSV DELIMITER ','
-    TIMEFORMAT as 'epochmillisecs'
+    FORMAT AS JSON 'auto'
+    TIMEFORMAT 'auto'
     TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
     REGION 'eu-west-1';
     """
@@ -168,7 +168,8 @@ copy_stagingNonMotCount = (
     COPY staging_nonMotCount
     FROM 's3://raph-dend-zh-data/data/raw/verkehrszaehlungen/non_mot/test.csv' --{COUNT_DATA_NON_MOT}
     CREDENTIALS 'aws_access_key_id={KEY};aws_secret_access_key={SECRET}'
-    CSV DELIMITER ','
+    DELIMITER ','
+    TIMEFORMAT 'YYYY-MM-DD HH:MI:SS'
     TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
     REGION 'eu-west-1';
     """
@@ -244,11 +245,11 @@ insert_dimDate = (
         EXTRACT(doy FROM datum) AS day_of_year,
         datum - DATE_TRUNC('quarter',datum)::DATE +1 AS day_of_quarter,
         EXTRACT(DAY FROM datum) AS day_of_month,
-        EXTRACT(isodow FROM datum) AS day_of_week,
+        EXTRACT(dow FROM datum) AS day_of_week,
         TO_CHAR(datum,'TMDay') AS day_name,  -- localized day name
         EXTRACT(week FROM datum) AS week_of_year,
         CASE
-            WHEN EXTRACT(isodow FROM datum) IN (6,7) THEN TRUE
+            WHEN EXTRACT(dow FROM datum) IN (6,7) THEN TRUE
             ELSE FALSE
         END AS is_weekend,
         CASE
@@ -256,14 +257,14 @@ insert_dimDate = (
                 ('0101', '0501', '0801', '1225', '1226') THEN TRUE
             ELSE FALSE
         END AS is_holiday,
-        datum +(1 -EXTRACT(isodow FROM datum))::INT AS first_day_of_week,
-        datum +(7 -EXTRACT(isodow FROM datum))::INT AS last_day_of_week,
+        datum +(1 -EXTRACT(dow FROM datum))::INT AS first_day_of_week,
+        datum +(7 -EXTRACT(dow FROM datum))::INT AS last_day_of_week,
         datum +(1 -EXTRACT(DAY FROM datum))::INT AS first_day_of_month,
         (DATE_TRUNC('MONTH',datum) +INTERVAL '1 MONTH - 1 day')::DATE AS last_day_of_month,
         DATE_TRUNC('quarter',datum)::DATE AS first_day_of_quarter,
         (DATE_TRUNC('quarter',datum) +INTERVAL '3 MONTH - 1 day')::DATE AS last_day_of_quarter,
-        TO_DATE(EXTRACT(isoyear FROM datum) || '-01-01','YYYY-MM-DD') AS first_day_of_year,
-        TO_DATE(EXTRACT(isoyear FROM datum) || '-12-31','YYYY-MM-DD') AS last_day_of_year
+        TO_DATE(EXTRACT(year FROM datum) || '-01-01','YYYY-MM-DD') AS first_day_of_year,
+        TO_DATE(EXTRACT(year FROM datum) || '-12-31','YYYY-MM-DD') AS last_day_of_year
     FROM (SELECT '2010-01-01'::DATE+ SEQUENCE.DAY AS datum
         FROM GENERATE_SERIES (0, 5475) AS SEQUENCE (DAY)
         GROUP BY SEQUENCE.DAY) DQ
