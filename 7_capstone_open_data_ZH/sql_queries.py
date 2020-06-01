@@ -8,8 +8,11 @@ config.read_file(open('dwh.cfg'))
 KEY = config.get("AWS", "KEY")
 SECRET = config.get("AWS", "SECRET")
 LOC_DATA = config.get("S3", "LOC_DATA")
+LOC_JSONPATH = config.get("S3", "LOC_JSONPATH")
 COUNT_DATA_NON_MOT = config.get("S3", "COUNT_DATA_NON_MOT")
 COUNT_DATA_MOT = config.get("S3", "COUNT_DATA_MOT")
+TIME_DATA = config.get("S3", "TIME_DATA")
+DATE_DATA = config.get("S3", "DATE_DATA")
 
 
 # DROP TABLES
@@ -58,7 +61,9 @@ create_stagingNonMotLocation = (
         richtung_out VARCHAR(50),
         von TIMESTAMP,
         objectid SMALLINT,
-        korrekturfaktor FLOAT
+        korrekturfaktor FLOAT,
+        long FLOAT,
+        lat FLOAT
     )
     DISTSTYLE ALL
     """
@@ -74,11 +79,11 @@ create_dimLocation = (
         location_name VARCHAR(50) NOT NULL,
         location_code VARCHAR(8) NOT NULL,
         count_type CHAR(3) NOT NULL,
-        coord_east DECIMAL NOT NULL,
-        coord_nord DECIMAL NOT NULL,
+        lat FLOAT NOT NULL,
+        long FLOAT NOT NULL,
         active_from DATE NOT NULL,
-        active_to DATE NOT NULL,
-        still_active BOOLEAN NOT NULL
+        active_to DATE
+        -- still_active BOOLEAN NOT NULL
     )
     DISTSTYLE ALL
     """
@@ -137,7 +142,7 @@ create_factCount = (
         date_key INT REFERENCES dimDate (date_key) SORTKEY DISTKEY,
         time_key INT REFERENCES dimTime (time_key),
         location_key SMALLINT REFERENCES dimLocation (location_key),
-        type CHAR(1),
+        count_type CHAR(1),
         count_total SMALLINT,
         count_in SMALLINT,
         count_out SMALLINT
@@ -151,13 +156,25 @@ create_factCount = (
 # COPY loads data into a table from data files or from an Amazon DynamoDB table.
 # Read more here: https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html
 
+# copy_stagingNonMotLocation = (
+#     f"""
+#     COPY staging_NonMotLocation
+#     FROM {LOC_DATA}
+#     CREDENTIALS 'aws_access_key_id={KEY};aws_secret_access_key={SECRET}'
+#     FORMAT AS JSON {LOC_JSONPATH}
+#     TIMEFORMAT 'auto'
+#     TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
+#     REGION 'eu-west-1';
+#     """
+# )
+
 copy_stagingNonMotLocation = (
     f"""
     COPY staging_NonMotLocation
     FROM {LOC_DATA}
     CREDENTIALS 'aws_access_key_id={KEY};aws_secret_access_key={SECRET}'
-    FORMAT AS JSON 'auto'
-    TIMEFORMAT 'auto'
+    DELIMITER ','
+    TIMEFORMAT 'YYYY-MM-DD HH:MI:SS'
     TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
     REGION 'eu-west-1';
     """
@@ -175,6 +192,31 @@ copy_stagingNonMotCount = (
     """
 )
 
+# Redhsift does not support TIME datatype from PostgreSQL, so I have to import the data
+copy_dimTime = (
+    f"""
+    COPY dimTime
+    FROM {TIME_DATA}
+    CREDENTIALS 'aws_access_key_id={KEY};aws_secret_access_key={SECRET}'
+    DELIMITER ';'
+    TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
+    REGION 'eu-west-1';
+    """
+)
+
+# Altough I was able to run the select statement for dimDate insert in Redshift
+# the insertion did not work in the pipeline for whatever reason ...
+copy_dimDate = (
+    f"""
+    COPY dimDate
+    FROM {DATE_DATA}
+    CREDENTIALS 'aws_access_key_id={KEY};aws_secret_access_key={SECRET}'
+    DELIMITER ','
+    TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
+    REGION 'eu-west-1';
+    """
+)
+
 # INSERT INTO FINAL TABLES
 
 # Note: I use DISTINCT statement to handle possible duplicates
@@ -182,28 +224,27 @@ copy_stagingNonMotCount = (
 insert_dimLocation = (
     """
     INSERT INTO dimLocation(
-        location_key,
         location_id,
         location_name,
         location_code,
         count_type,
-        coord_east,
-        coord_nord,
+        long,
+        lat,
         active_from,
-        active_to,
-        still_active
+        active_to
+        -- still_active
     )
     SELECT
         DISTINCT sl.id1 AS location_id,
         sl.bezeichnung AS location_name,
         sl.abkuerzung AS location_code,
         LEFT(sl.abkuerzung, 1) AS count_type,
-        sl.ost AS coord_east,
-        sl.nord AS coord_nord,
-        sl.von AS active_from
+        sl.lat AS lat,
+        sl.long AS long,
+        sl.von AS active_from,
         sl.bis AS active_to ---------------------- not good
-        -- CASE ??? AS still_active --------------- not inside yet
-    FROM stagingNoMotLocation as sl
+        -- CASE ??? AS still_active --------------- not implemented yet
+    FROM staging_NonMotLocation as sl
     """
 )
 
@@ -221,12 +262,12 @@ insert_factCount = (
     SELECT
         TO_CHAR(sc.datum,'yyyymmdd')::INT AS date_key,
         EXTRACT(HOUR FROM sc.datum)*100 + EXTRACT(MINUTE FROM sc.datum) AS time_key,
-        sc.fk_standort AS sc.location_key,
+        sc.fk_standort AS location_key,
         dl.count_type AS count_type,
         sc.velo_in + sc.velo_out + sc.fuss_in + sc.fuss_out AS count_total,
-        sc.velo_in + sc.fuss_in AS count_in
+        sc.velo_in + sc.fuss_in AS count_in,
         sc.velo_out + sc.fuss_out AS count_out
-    FROM stagingNonMotCount AS sc
+    FROM staging_NonMotCount AS sc
     JOIN dimLocation AS dl
         ON dl.location_id = sc.fk_standort
     """
@@ -241,15 +282,15 @@ insert_dimDate = (
         EXTRACT(year FROM datum) AS year,
         EXTRACT(quarter FROM datum) AS quarter,
         EXTRACT(MONTH FROM datum) AS month,
-        TO_CHAR(datum, 'TMMonth') AS month_name,  -- localized month name
+        TO_CHAR(datum, 'Month') AS month_name,
+        EXTRACT(week FROM datum) AS week_of_year,
         EXTRACT(doy FROM datum) AS day_of_year,
         datum - DATE_TRUNC('quarter',datum)::DATE +1 AS day_of_quarter,
         EXTRACT(DAY FROM datum) AS day_of_month,
-        EXTRACT(dow FROM datum) AS day_of_week,
-        TO_CHAR(datum,'TMDay') AS day_name,  -- localized day name
-        EXTRACT(week FROM datum) AS week_of_year,
+        EXTRACT(dow FROM datum)::INT AS day_of_week,
+        TO_CHAR(datum,'Day') AS day_name,
         CASE
-            WHEN EXTRACT(dow FROM datum) IN (6,7) THEN TRUE
+            WHEN EXTRACT(dow FROM datum) IN (6,0) THEN TRUE
             ELSE FALSE
         END AS is_weekend,
         CASE
@@ -314,17 +355,19 @@ drop_table_queries = [
     drop_dimLocation,
     drop_dimTime,
     drop_stagingNonMotCount,
-    drop_stagingNonMotLocation
+    drop_stagingNonMotLocation,
 ]
 
 copy_table_queries = [
-    copy_stagingNonMotCount,
-    copy_stagingNonMotLocation
+    # copy_stagingNonMotCount,
+    copy_stagingNonMotLocation,
+    # copy_dimTime,
+    # copy_dimDate,
 ]
 
 insert_table_queries = [
-    insert_dimDate,
-    insert_dimLocation,
-    insert_dimTime,
+    # insert_dimDate,
+    # insert_dimLocation,
+    # insert_dimTime,
     insert_factCount,
 ]
