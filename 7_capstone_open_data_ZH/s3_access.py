@@ -1,22 +1,12 @@
-# The approach taken here has been inspired by:
-# https://www.postgresqltutorial.com/postgresql-python/connect/
+# This file was used for experimentation and debugging only.
 
-import logging
 import boto3
 from botocore.exceptions import ClientError, ParamValidationError
 from configparser import ConfigParser
 
 
-logger = logging.getLogger(__name__)
-logger.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.DEBUG,
-    datefmt="%m/%d/%Y %H:%M:%S"
-)
-
-
-def config(filename="dwh.cfg", section="AWS"):
-    """Read and return necessary parameters for connecting to the database."""
+def config_s3(filename="dwh.cfg", section="AWS"):
+    """Read and return necessary parameters for connecting to the s3 bucket."""
     # Create a parser to read config file
     parser = ConfigParser()
     parser.read(filename)
@@ -33,16 +23,14 @@ def config(filename="dwh.cfg", section="AWS"):
     return s3_params
 
 
-def access_S3(db_params):
-    """Acess to the Redshift cluster. Return bucket."""
+def access_s3():
+    """Acess to the Redshift cluster. Return bucket object."""
     try:
         # Read connection parameters
-        s3_params = config()
-        logger.debug(s3_params)
+        s3_params = config_s3()
         # Connect to the PostgreSQL server
-        print("Connecting to S3 ...")
-        key = db_params.get('key')
-        secret = db_params.get('secret')
+        key = s3_params.get('key')
+        secret = s3_params.get('secret')
 
         s3 = boto3.resource(
             "s3",
@@ -51,9 +39,12 @@ def access_S3(db_params):
             aws_secret_access_key=secret
         )
         s3_bucket = s3.Bucket("raph-dend-zh-data")
-        logger.debug([obj for obj in s3_bucket.objects])
+        # for obj in s3_bucket.objects.filter(Prefix="data/raw/verkehrszaehlungen/non_mot/"):
+        #     print(obj)
 
     except ParamValidationError as e:
         print("Parameter validation error: %s" % e)
     except ClientError as e:
         print("Unexpected error: %s" % e)
+
+    return s3_bucket
