@@ -17,10 +17,10 @@ DATE_DATA = config.get("S3", "DATE_DATA")
 
 # DROP TABLES
 
-drop_dimDate = "DROP TABLE IF EXISTS dimDate;"
-drop_dimLocation = "DROP TABLE IF EXISTS dimLocation;"
-drop_dimTime = "DROP TABLE IF EXISTS dimTime;"
-drop_factCount = "DROP TABLE IF EXISTS factCount;"
+drop_dim_date = "DROP TABLE IF EXISTS dim_date;"
+drop_dim_location = "DROP TABLE IF EXISTS dim_location;"
+drop_dim_time = "DROP TABLE IF EXISTS dim_time;"
+drop_fact_count = "DROP TABLE IF EXISTS fact_count;"
 drop_stagingNonMotCount = "DROP TABLE IF EXISTS stagingNonMotCount;"
 drop_stagingNonMotLocation = "DROP TABLE IF EXISTS stagingNonMotLocation;"
 
@@ -71,9 +71,9 @@ create_stagingNonMotLocation = (
 
 # Dim Tables
 
-create_dimLocation = (
+create_dim_location = (
     """
-    CREATE TABLE IF NOT EXISTS dimLocation(
+    CREATE TABLE IF NOT EXISTS dim_location(
         location_key INT IDENTITY(0,1) PRIMARY KEY, -- counts_id SERIAL PRIMARY KEY,
         location_id SMALLINT NOT NULL,
         location_name VARCHAR(50) NOT NULL,
@@ -89,9 +89,9 @@ create_dimLocation = (
     """
 )
 
-create_dimDate = (
+create_dim_date = (
     """
-    CREATE TABLE IF NOT EXISTS dimDate(
+    CREATE TABLE IF NOT EXISTS dim_date(
         date_key INT PRIMARY KEY SORTKEY,
         date DATE NOT NULL,
         year SMALLINT NOT NULL,
@@ -119,9 +119,9 @@ create_dimDate = (
     """
 )
 
-create_dimTime = (
+create_dim_time = (
     """
-    CREATE TABLE IF NOT EXISTS dimTime(
+    CREATE TABLE IF NOT EXISTS dim_time(
         time_key INT PRIMARY KEY SORTKEY,
         time_of_day CHAR(5) NOT NULL,
         hour SMALLINT NOT NULL,
@@ -135,13 +135,13 @@ create_dimTime = (
 
 # Fact Table
 
-create_factCount = (
+create_fact_count = (
     """
-    CREATE TABLE IF NOT EXISTS factCount(
+    CREATE TABLE IF NOT EXISTS fact_count(
         counts_id INT IDENTITY(0,1) PRIMARY KEY, -- counts_id SERIAL PRIMARY KEY,
-        date_key INT REFERENCES dimDate (date_key) SORTKEY DISTKEY,
-        time_key INT REFERENCES dimTime (time_key),
-        location_key SMALLINT REFERENCES dimLocation (location_key),
+        date_key INT REFERENCES dim_date (date_key) SORTKEY DISTKEY,
+        time_key INT REFERENCES dim_time (time_key),
+        location_key SMALLINT REFERENCES dim_location (location_key),
         count_type CHAR(1),
         count_total SMALLINT,
         count_in SMALLINT,
@@ -193,9 +193,9 @@ copy_stagingNonMotCount = (
 )
 
 # Redhsift does not support TIME datatype from PostgreSQL, so I have to import the data
-copy_dimTime = (
+copy_dim_time = (
     f"""
-    COPY dimTime
+    COPY dim_time
     FROM {TIME_DATA}
     CREDENTIALS 'aws_access_key_id={KEY};aws_secret_access_key={SECRET}'
     DELIMITER ';'
@@ -204,11 +204,11 @@ copy_dimTime = (
     """
 )
 
-# Altough I was able to run the select statement for dimDate insert in Redshift
+# Altough I was able to run the select statement for dim_date insert in Redshift
 # the insertion did not work in the pipeline for whatever reason ...
-copy_dimDate = (
+copy_dim_date = (
     f"""
-    COPY dimDate
+    COPY dim_date
     FROM {DATE_DATA}
     CREDENTIALS 'aws_access_key_id={KEY};aws_secret_access_key={SECRET}'
     DELIMITER ','
@@ -221,9 +221,9 @@ copy_dimDate = (
 
 # Note: I use DISTINCT statement to handle possible duplicates
 
-insert_dimLocation = (
+insert_dim_location = (
     """
-    INSERT INTO dimLocation(
+    INSERT INTO dim_location(
         location_id,
         location_name,
         location_code,
@@ -248,9 +248,9 @@ insert_dimLocation = (
     """
 )
 
-insert_factCount = (
+insert_fact_count = (
     """
-    INSERT INTO factCount(
+    INSERT INTO fact_count(
         date_key,
         time_key,
         location_key,
@@ -268,14 +268,14 @@ insert_factCount = (
         sc.velo_in + sc.fuss_in AS count_in,
         sc.velo_out + sc.fuss_out AS count_out
     FROM staging_NonMotCount AS sc
-    JOIN dimLocation AS dl
+    JOIN dim_location AS dl
         ON dl.location_id = sc.fk_standort
     """
 )
 
-insert_dimDate = (
+insert_dim_date = (
     """
-    INSERT INTO dimDate
+    INSERT INTO dim_date
     SELECT
         TO_CHAR(datum,'yyyymmdd')::INT AS date_key,
         datum AS date,
@@ -313,9 +313,9 @@ insert_dimDate = (
     """
 )
 
-insert_dimTime = (
+insert_dim_time = (
     """
-    INSERT INTO dimTime
+    INSERT INTO dim_time
     SELECT
         EXTRACT(HOUR FROM MINUTE)*60 + EXTRACT(MINUTE FROM MINUTE) AS time_key,
         to_char(MINUTE, 'hh24:mi') AS time_of_day,
@@ -341,19 +341,19 @@ insert_dimTime = (
 # QUERY LISTS
 
 create_table_queries = [
-    create_dimDate,
-    create_dimLocation,
-    create_dimTime,
-    create_factCount,
+    create_dim_date,
+    create_dim_location,
+    create_dim_time,
+    create_fact_count,
     create_stagingNonMotCount,
     create_stagingNonMotLocation
 ]
 
 drop_table_queries = [
-    drop_factCount,
-    drop_dimDate,
-    drop_dimLocation,
-    drop_dimTime,
+    drop_fact_count,
+    drop_dim_date,
+    drop_dim_location,
+    drop_dim_time,
     drop_stagingNonMotCount,
     drop_stagingNonMotLocation,
 ]
@@ -361,13 +361,13 @@ drop_table_queries = [
 copy_table_queries = [
     # copy_stagingNonMotCount,
     copy_stagingNonMotLocation,
-    # copy_dimTime,
-    # copy_dimDate,
+    # copy_dim_time,
+    # copy_dim_date,
 ]
 
 insert_table_queries = [
-    # insert_dimDate,
-    # insert_dimLocation,
-    # insert_dimTime,
-    insert_factCount,
+    # insert_dim_date,
+    # insert_dim_location,
+    # insert_dim_time,
+    insert_fact_count,
 ]
