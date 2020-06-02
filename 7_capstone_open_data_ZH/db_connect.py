@@ -1,3 +1,5 @@
+
+
 # The approach taken here has been inspired by:
 # https://www.postgresqltutorial.com/postgresql-python/connect/
 
