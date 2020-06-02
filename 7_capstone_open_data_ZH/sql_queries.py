@@ -7,20 +7,20 @@ config.read_file(open('dwh.cfg'))
 
 KEY = config.get("AWS", "KEY")
 SECRET = config.get("AWS", "SECRET")
-LOC_DATA = config.get("S3", "LOC_DATA")
-LOC_JSONPATH = config.get("S3", "LOC_JSONPATH")
-COUNT_DATA_NON_MOT = config.get("S3", "COUNT_DATA_NON_MOT")
-COUNT_DATA_MOT = config.get("S3", "COUNT_DATA_MOT")
+NON_MOT_LOC_DATA = config.get("S3", "NON_MOT_LOC_DATA")
+NON_MOT_COUNT_DATA = config.get("S3", "NON_MOT_COUNT_DATA")
+
+# COUNT_DATA_MOT = config.get("S3", "COUNT_DATA_MOT")
 TIME_DATA = config.get("S3", "TIME_DATA")
 DATE_DATA = config.get("S3", "DATE_DATA")
 
 
 # DROP TABLES
 
+drop_fact_count = "DROP TABLE IF EXISTS fact_count;"
 drop_dim_date = "DROP TABLE IF EXISTS dim_date;"
 drop_dim_location = "DROP TABLE IF EXISTS dim_location;"
 drop_dim_time = "DROP TABLE IF EXISTS dim_time;"
-drop_fact_count = "DROP TABLE IF EXISTS fact_count;"
 drop_stagingNonMotCount = "DROP TABLE IF EXISTS stagingNonMotCount;"
 drop_stagingNonMotLocation = "DROP TABLE IF EXISTS stagingNonMotLocation;"
 
@@ -171,7 +171,7 @@ create_fact_count = (
 copy_stagingNonMotLocation = (
     f"""
     COPY staging_NonMotLocation
-    FROM {LOC_DATA}
+    FROM {NON_MOT_LOC_DATA}
     CREDENTIALS 'aws_access_key_id={KEY};aws_secret_access_key={SECRET}'
     DELIMITER ','
     TIMEFORMAT 'YYYY-MM-DD HH:MI:SS'
@@ -183,7 +183,7 @@ copy_stagingNonMotLocation = (
 copy_stagingNonMotCount = (
     f"""
     COPY staging_nonMotCount
-    FROM 's3://raph-dend-zh-data/data/raw/verkehrszaehlungen/non_mot/test.csv' --{COUNT_DATA_NON_MOT}
+    FROM 's3://raph-dend-zh-data/data/raw/verkehrszaehlungen/non_mot/test.csv' --{NON_MOT_COUNT_DATA}
     CREDENTIALS 'aws_access_key_id={KEY};aws_secret_access_key={SECRET}'
     DELIMITER ','
     TIMEFORMAT 'YYYY-MM-DD HH:MI:SS'
