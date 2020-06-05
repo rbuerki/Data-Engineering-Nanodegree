@@ -9,8 +9,8 @@ KEY = config.get("AWS", "KEY")
 SECRET = config.get("AWS", "SECRET")
 NON_MOT_LOC_DATA = config.get("S3", "NON_MOT_LOC_DATA")
 NON_MOT_COUNT_DATA = config.get("S3", "NON_MOT_COUNT_DATA")
+WEATHER_DATA = config.get("S3", "WEATHER_DATA")
 
-# COUNT_DATA_MOT = config.get("S3", "COUNT_DATA_MOT")
 TIME_DATA = config.get("S3", "TIME_DATA")
 DATE_DATA = config.get("S3", "DATE_DATA")
 
@@ -18,11 +18,13 @@ DATE_DATA = config.get("S3", "DATE_DATA")
 # DROP TABLES
 
 drop_fact_count = "DROP TABLE IF EXISTS fact_count;"
+drop_fact_weather = "DROP TABLE IF EXISTS fact_weather;"
 drop_dim_date = "DROP TABLE IF EXISTS dim_date;"
 drop_dim_location = "DROP TABLE IF EXISTS dim_location;"
 drop_dim_time = "DROP TABLE IF EXISTS dim_time;"
 drop_stagingNonMotCount = "DROP TABLE IF EXISTS stagingNonMotCount;"
 drop_stagingNonMotLocation = "DROP TABLE IF EXISTS stagingNonMotLocation;"
+drop_staging_weather = "DROP TABLE IF EXISTS staging_weather;"
 
 
 # CREATE TABLES
@@ -66,6 +68,24 @@ create_stagingNonMotLocation = (
         lat FLOAT
     )
     DISTSTYLE ALL
+    """
+)
+
+create_fact_weather = (
+    """
+    CREATE TABLE IF NOT EXISTS fact_weather(
+        datetime_cet TIMESTAMP SORTKEY DISTKEY,
+        air_temperature FLOAT,
+        humidity SMALLINT,
+        wind_gust_max_10min FLOAT,
+        wind_speed_avg_10min FLOAT,
+        wind_force_avg_10min SMALLINT,
+        wind_direction SMALLINT,
+        windchill FLOAT,
+        barometric_pressure_qfe FLOAT,
+        dew_point FLOAT
+    )
+    DISTSTYLE AUTO
     """
 )
 
@@ -133,7 +153,7 @@ create_dim_time = (
     """
 )
 
-# Fact Table
+# Fact Tables
 
 create_fact_count = (
     """
@@ -148,6 +168,26 @@ create_fact_count = (
         count_out SMALLINT
     )
     DISTSTYLE KEY
+    """
+)
+
+create_fact_weather = (
+    """
+    CREATE TABLE IF NOT EXISTS fact_weather(
+        weather_id INT IDENTITY(0,1) PRIMARY KEY,
+        date_key INT REFERENCES dim_date (date_key) SORTKEY DISTKEY,
+        time_key INT REFERENCES dim_time (time_key),
+        air_temperature FLOAT,
+        humidity SMALLINT,
+        wind_gust_max FLOAT,
+        wind_speed_avg FLOAT,
+        wind_force_avg SMALLINT,
+        wind_direction SMALLINT,
+        windchill FLOAT,
+        barometric_pressure_qfe FLOAT,
+        dew_point FLOAT
+    )
+    DISTSTYLE AUTO
     """
 )
 
@@ -183,7 +223,20 @@ copy_stagingNonMotLocation = (
 copy_stagingNonMotCount = (
     f"""
     COPY staging_nonMotCount
-    FROM 's3://raph-dend-zh-data/data/raw/verkehrszaehlungen/non_mot/test.csv' --{NON_MOT_COUNT_DATA}
+    FROM {NON_MOT_COUNT_DATA}
+    CREDENTIALS 'aws_access_key_id={KEY};aws_secret_access_key={SECRET}'
+    DELIMITER ','
+    TIMEFORMAT 'YYYY-MM-DD HH:MI:SS'
+    TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
+    REGION 'eu-west-1';
+    """
+)
+
+# Redhsift does not support TIME datatype from PostgreSQL, so I have to import the data
+copy_staging_weather = (
+    f"""
+    COPY fact_weather
+    FROM {WEATHER_DATA}
     CREDENTIALS 'aws_access_key_id={KEY};aws_secret_access_key={SECRET}'
     DELIMITER ','
     TIMEFORMAT 'YYYY-MM-DD HH:MI:SS'
@@ -242,7 +295,7 @@ insert_dim_location = (
         sl.lat AS lat,
         sl.long AS long,
         sl.von AS active_from,
-        sl.bis AS active_to ---------------------- not good
+        sl.bis AS active_to
         -- CASE ??? AS still_active --------------- not implemented yet
     FROM staging_NonMotLocation as sl
     """
@@ -273,70 +326,101 @@ insert_fact_count = (
     """
 )
 
-insert_dim_date = (
+insert_fact_weather = (
     """
-    INSERT INTO dim_date
+    INSERT INTO fact_weather(
+        date_key,
+        time_key,
+        air_temperature,
+        humidity,
+        wind_gust_max,
+        wind_speed_avg,
+        wind_force_avg,
+        wind_direction,
+        windchill,
+        barometric_pressure_qfe,
+        dew_point
+    )
     SELECT
-        TO_CHAR(datum,'yyyymmdd')::INT AS date_key,
-        datum AS date,
-        EXTRACT(year FROM datum) AS year,
-        EXTRACT(quarter FROM datum) AS quarter,
-        EXTRACT(MONTH FROM datum) AS month,
-        TO_CHAR(datum, 'Month') AS month_name,
-        EXTRACT(week FROM datum) AS week_of_year,
-        EXTRACT(doy FROM datum) AS day_of_year,
-        datum - DATE_TRUNC('quarter',datum)::DATE +1 AS day_of_quarter,
-        EXTRACT(DAY FROM datum) AS day_of_month,
-        EXTRACT(dow FROM datum)::INT AS day_of_week,
-        TO_CHAR(datum,'Day') AS day_name,
-        CASE
-            WHEN EXTRACT(dow FROM datum) IN (6,0) THEN TRUE
-            ELSE FALSE
-        END AS is_weekend,
-        CASE
-            WHEN to_char(datum, 'MMDD') IN
-                ('0101', '0501', '0801', '1225', '1226') THEN TRUE
-            ELSE FALSE
-        END AS is_holiday,
-        datum +(1 -EXTRACT(dow FROM datum))::INT AS first_day_of_week,
-        datum +(7 -EXTRACT(dow FROM datum))::INT AS last_day_of_week,
-        datum +(1 -EXTRACT(DAY FROM datum))::INT AS first_day_of_month,
-        (DATE_TRUNC('MONTH',datum) +INTERVAL '1 MONTH - 1 day')::DATE AS last_day_of_month,
-        DATE_TRUNC('quarter',datum)::DATE AS first_day_of_quarter,
-        (DATE_TRUNC('quarter',datum) +INTERVAL '3 MONTH - 1 day')::DATE AS last_day_of_quarter,
-        TO_DATE(EXTRACT(year FROM datum) || '-01-01','YYYY-MM-DD') AS first_day_of_year,
-        TO_DATE(EXTRACT(year FROM datum) || '-12-31','YYYY-MM-DD') AS last_day_of_year
-    FROM (SELECT '2010-01-01'::DATE+ SEQUENCE.DAY AS datum
-        FROM GENERATE_SERIES (0, 5475) AS SEQUENCE (DAY)
-        GROUP BY SEQUENCE.DAY) DQ
-    ORDER BY 1
+        TO_CHAR(sw.datetime_cet,'yyyymmdd')::INT AS date_key,
+        EXTRACT(HOUR FROM sw.datetime_cet)*100 + EXTRACT(MINUTE FROM sw.datetime_cet) AS time_key,
+        sw.air_temperature AS air_temperature,
+        sw.humidity AS humidity,
+        sw.wind_gust_max_10min AS wind_gust_max,
+        sw.wind_speed_avg_10min AS wind_speed_avg,
+        sw.wind_force_avg_10min AS wind_force_avg,
+        sw.wind_direction AS wind_direction,
+        sw.windchill AS wind_chill,
+        sw.barometric_pressure_qfe AS barometric_pressure_qfe,
+        sw.dew_point AS dew_point
+    FROM staging_weather AS sw
     """
 )
 
-insert_dim_time = (
-    """
-    INSERT INTO dim_time
-    SELECT
-        EXTRACT(HOUR FROM MINUTE)*60 + EXTRACT(MINUTE FROM MINUTE) AS time_key,
-        to_char(MINUTE, 'hh24:mi') AS time_of_day,
-        EXTRACT(HOUR FROM MINUTE) AS hour,
-        to_char(MINUTE - (EXTRACT(MINUTE FROM MINUTE)::INTEGER % 30 || 'minutes')::INTERVAL, 'hh24:mi') ||
-        ' – ' ||
-        to_char(MINUTE - (EXTRACT(MINUTE FROM MINUTE)::INTEGER % 30 || 'minutes')::INTERVAL + '29 minutes'::INTERVAL, 'hh24:mi')
-            AS half_hour,
-        to_char(MINUTE - (EXTRACT(MINUTE FROM MINUTE)::INTEGER % 15 || 'minutes')::INTERVAL, 'hh24:mi') ||
-        ' – ' ||
-        to_char(MINUTE - (EXTRACT(MINUTE FROM MINUTE)::INTEGER % 15 || 'minutes')::INTERVAL + '14 minutes'::INTERVAL, 'hh24:mi')
-            AS quarter_hour,
-        -- Minute (0 - 59)
-        EXTRACT(MINUTE FROM MINUTE) AS minute
-    FROM (SELECT '0:00'::TIME + (SEQUENCE.MINUTE || ' minutes')::INTERVAL AS MINUTE
-        FROM generate_series(0,1439) AS SEQUENCE(MINUTE)
-        GROUP BY SEQUENCE.MINUTE
-        ) DQ
-    ORDER BY 1
-    """
-)
+# insert_dim_date = (
+#     """
+#     INSERT INTO dim_date
+#     SELECT
+#         TO_CHAR(datum,'yyyymmdd')::INT AS date_key,
+#         datum AS date,
+#         EXTRACT(year FROM datum) AS year,
+#         EXTRACT(quarter FROM datum) AS quarter,
+#         EXTRACT(MONTH FROM datum) AS month,
+#         TO_CHAR(datum, 'Month') AS month_name,
+#         EXTRACT(week FROM datum) AS week_of_year,
+#         EXTRACT(doy FROM datum) AS day_of_year,
+#         datum - DATE_TRUNC('quarter',datum)::DATE +1 AS day_of_quarter,
+#         EXTRACT(DAY FROM datum) AS day_of_month,
+#         EXTRACT(dow FROM datum)::INT AS day_of_week,
+#         TO_CHAR(datum,'Day') AS day_name,
+#         CASE
+#             WHEN EXTRACT(dow FROM datum) IN (6,0) THEN TRUE
+#             ELSE FALSE
+#         END AS is_weekend,
+#         CASE
+#             WHEN to_char(datum, 'MMDD') IN
+#                 ('0101', '0501', '0801', '1225', '1226') THEN TRUE
+#             ELSE FALSE
+#         END AS is_holiday,
+#         datum +(1 -EXTRACT(dow FROM datum))::INT AS first_day_of_week,
+#         datum +(7 -EXTRACT(dow FROM datum))::INT AS last_day_of_week,
+#         datum +(1 -EXTRACT(DAY FROM datum))::INT AS first_day_of_month,
+#         (DATE_TRUNC('MONTH',datum) +INTERVAL '1 MONTH - 1 day')::DATE AS last_day_of_month,
+#         DATE_TRUNC('quarter',datum)::DATE AS first_day_of_quarter,
+#         (DATE_TRUNC('quarter',datum) +INTERVAL '3 MONTH - 1 day')::DATE AS last_day_of_quarter,
+#         TO_DATE(EXTRACT(year FROM datum) || '-01-01','YYYY-MM-DD') AS first_day_of_year,
+#         TO_DATE(EXTRACT(year FROM datum) || '-12-31','YYYY-MM-DD') AS last_day_of_year
+#     FROM (SELECT '2010-01-01'::DATE+ SEQUENCE.DAY AS datum
+#         FROM GENERATE_SERIES (0, 5475) AS SEQUENCE (DAY)
+#         GROUP BY SEQUENCE.DAY) DQ
+#     ORDER BY 1
+#     """
+# )
+
+# insert_dim_time = (
+#     """
+#     INSERT INTO dim_time
+#     SELECT
+#         EXTRACT(HOUR FROM MINUTE)*60 + EXTRACT(MINUTE FROM MINUTE) AS time_key,
+#         to_char(MINUTE, 'hh24:mi') AS time_of_day,
+#         EXTRACT(HOUR FROM MINUTE) AS hour,
+#         to_char(MINUTE - (EXTRACT(MINUTE FROM MINUTE)::INTEGER % 30 || 'minutes')::INTERVAL, 'hh24:mi') ||
+#         ' – ' ||
+#         to_char(MINUTE - (EXTRACT(MINUTE FROM MINUTE)::INTEGER % 30 || 'minutes')::INTERVAL + '29 minutes'::INTERVAL, 'hh24:mi')
+#             AS half_hour,
+#         to_char(MINUTE - (EXTRACT(MINUTE FROM MINUTE)::INTEGER % 15 || 'minutes')::INTERVAL, 'hh24:mi') ||
+#         ' – ' ||
+#         to_char(MINUTE - (EXTRACT(MINUTE FROM MINUTE)::INTEGER % 15 || 'minutes')::INTERVAL + '14 minutes'::INTERVAL, 'hh24:mi')
+#             AS quarter_hour,
+#         -- Minute (0 - 59)
+#         EXTRACT(MINUTE FROM MINUTE) AS minute
+#     FROM (SELECT '0:00'::TIME + (SEQUENCE.MINUTE || ' minutes')::INTERVAL AS MINUTE
+#         FROM generate_series(0,1439) AS SEQUENCE(MINUTE)
+#         GROUP BY SEQUENCE.MINUTE
+#         ) DQ
+#     ORDER BY 1
+#     """
+# )
 
 # QUERY LISTS
 
@@ -345,29 +429,31 @@ create_table_queries = [
     create_dim_location,
     create_dim_time,
     create_fact_count,
+    create_fact_weather,
     create_stagingNonMotCount,
     create_stagingNonMotLocation
 ]
 
 drop_table_queries = [
-    drop_fact_count,
     drop_dim_date,
     drop_dim_location,
     drop_dim_time,
+    drop_fact_count,
+    drop_fact_weather,
     drop_stagingNonMotCount,
     drop_stagingNonMotLocation,
 ]
 
 copy_table_queries = [
-    # copy_stagingNonMotCount,
+    copy_stagingNonMotCount,
     copy_stagingNonMotLocation,
-    # copy_dim_time,
-    # copy_dim_date,
+    copy_staging_weather,
+    copy_dim_time,
+    copy_dim_date,
 ]
 
 insert_table_queries = [
-    # insert_dim_date,
-    # insert_dim_location,
-    # insert_dim_time,
+    insert_dim_location,
     insert_fact_count,
+    insert_fact_weather,
 ]
