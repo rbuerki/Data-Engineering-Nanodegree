@@ -1,13 +1,16 @@
 from configparser import ConfigParser
+import datetime as dt
 import json
 import logging
 import os
+import requests
 import time
 import boto3
 import pandas as pd
 
 
 module_logger = logging.getLogger("__name__")
+module_logger.setLevel(logging.DEBUG)
 
 non_mot_count_url_dict = {
     2009: u"https://data.stadt-zuerich.ch/dataset/83ca481f-275c-417b-9598-3902c481e400/resource/6d51f9a8-66f8-41d9-8563-1220a1bd83d2/download/2009_verkehrszaehlungen_werte_fussgaenger_velo.csv",
@@ -24,11 +27,13 @@ non_mot_count_url_dict = {
     2020: u"https://data.stadt-zuerich.ch/dataset/83ca481f-275c-417b-9598-3902c481e400/resource/b9308f85-9066-4f5b-8eab-344c790a6982/download/2020_verkehrszaehlungen_werte_fussgaenger_velo.csv",
 }
 
+historic_weather_url = "https://data.stadt-zuerich.ch/dataset/69802b3a-bcae-4c28-8a1d-84295676e107/resource/8207b8b4-7993-447d-8a21-5987335aa7ef/download/messwerte_mythenquai_2007-2019.csv"
+
 
 def get_prepared_non_mot_counts(source_urls, target_dir):
     """Download csv files containing the counts of non-motorized traffic,
     loop through all the files, clean the data and write the preprocessed
-    files into the target directory.
+    datasets into the target directory.
 
     Note 1: The specific datetime format is necessary for Redshift's COPY
     statement to work. This caused quite some headache. See here:
@@ -44,13 +49,13 @@ def get_prepared_non_mot_counts(source_urls, target_dir):
         Dictionary containing the URLs for the files as values and
         the respective year as key.
     target_dir : str
-        Relative path to the target directory for saving the cleaned files.
+        Relative path to the target directory for saving the cleaned datasets.
     """
     for year, url in source_urls.items():
         module_logger.info(f"Loading non_mot_count file for year {str(year)} ...")
         df = pd.read_csv(url, delimiter=',')
 
-        df.fillna(0, inplace=True)
+        df.fillna(-1, inplace=True)
         for col in ["VELO_IN", "VELO_OUT", "FUSS_IN", "FUSS_OUT"]:
             df[col] = df[col].astype(int)
         df["DATUM"] = pd.to_datetime(df["DATUM"]).astype(str)
@@ -72,13 +77,20 @@ def get_prepared_non_mot_counts(source_urls, target_dir):
 
 
 def get_prepared_non_mot_locations(source_file, target_dir):
-    """Transform the JSON containing the location data of the
-    counting stations to CSV. This is necessary because "Amazon Redshift
-    can't parse complex, multi-level data structures." (Docs, see here:)
+    """Transform the JSON containing the location data of the observation stations
+    to CSV. (This is necessary because "Amazon Redshift can't parse complex,
+    multi-level data structures." (Quoted from docs, see here:
     https://docs.aws.amazon.com/redshift/latest/dg/copy-usage_notes-copy-from-json.html))
 
     Note also that this file has to be downloaded manually as the API
     does not allow programmatic requests.
+
+    Parameters
+    ----------
+    source_file : str
+        Path to JSON file with location info
+    target_dir : str
+        Relative path to the target directory for saving the processed dataset.
     """
     with open(source_file, 'r') as j:
         contents = json.loads(j.read())
@@ -141,6 +153,77 @@ def get_s3_params(param_file, section):
     return s3_params
 
 
+def get_historic_weather_data(source_url, target_dir):
+    """Download the csv file containing the weather data from 2007 up to
+    the previous year, clean the data and write the preprocessed dataset
+    into the target directory.
+
+    Parameters
+    ----------
+    source_url : str
+        URL pointing to the source file.
+    target_dir : str
+        Relative path to the target directory for saving the cleaned dataset.
+    """
+    df = pd.read_csv(source_url, delimiter=',')
+    cols = ["timestamp_cet", "air_temperature", "humidity", "wind_gust_max_10min",
+            "wind_speed_avg_10min", "wind_force_avg_10min", "wind_direction",
+            "windchill", "barometric_pressure_qfe", "dew_point"]
+    df = df[cols]
+    df.fillna(-1, inplace=True)
+    for col in ["humidity", "wind_force_avg_10min", "wind_direction", "barometric_pressure_qfe"]:
+        df[col] = df[col].astype(int)
+    df["timestamp_cet"] = pd.to_datetime(df["timestamp_cet"]).astype(str)
+    assert df.isna().any() is not False, \
+        f"Missing values in dataframe with historic weather data"
+
+    # Write to file
+    df.to_csv(f"{target_dir}weather_data.csv", index=False, header=False)
+
+
+def append_actual_weatherdata(request_url, target_dir, chunksize=50):
+    """Download the weather data for the actual year from the provided API. The
+    downloaded data is then appended to the saved weather data file.
+
+    Note: For larger requests the daterange is split into chunks, because the API
+    tends to crash when too much data is requested at once.
+
+        Parameters
+    ----------
+    source_file : str
+        API url for request of weather data of the actual year.
+    target_dir : str
+        Relative path to the target directory for saving the processed dataset.
+    chunksize : int
+        Number of daydates per API request call, defaults to 50.
+    """
+    start_date = dt.date(dt.date.today().year, 1, 1)
+    end_date = dt.date.today() - dt.timedelta(days=1)
+    date_range = pd.date_range(start=start_date, end=end_date)
+
+    # Make junks for the data requests to avoid overloading the API
+    def _chunker(seq, size):
+        return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
+    for chunk in _chunker(date_range, 50):
+
+        request_params = (
+            ("startDate", dt.datetime.strftime(chunk[0], format="%Y-%m-%d")),
+            ("endDate", dt.datetime.strftime(chunk[-1], format="%Y-%m-%d")),
+        )
+        result = requests.get(
+            request_url,
+            params=request_params
+        )
+        result_json = result.json()
+
+        df = pd.json_normalize(result_json["result"])
+        df = df.iloc[:, [2, 5, 8, 11, 14, 17, 20, 23, 26, 29]]
+
+        # Write to file
+        df.to_csv(f"{target_dir}weather_data.csv", index=False, header=False, mode="a")
+
+
 def upload_to_s3(s3_params, local_dir, s3_bucket, s3_target_dir):
     """[summary]
 
@@ -159,11 +242,11 @@ def upload_to_s3(s3_params, local_dir, s3_bucket, s3_target_dir):
     Also have a look at comments int the upload jpynb for some
     additional info.
     """
-    s3 = boto3.resource("s3",
-                        region_name="eu-west-1",
-                        aws_access_key_id=s3_params.get('key'),
-                        aws_secret_access_key=s3_params.get('secret')
-                        )
+    s3 = boto3.client("s3",
+                      region_name="eu-west-1",
+                      aws_access_key_id=s3_params.get('key'),
+                      aws_secret_access_key=s3_params.get('secret')
+                      )
     for root, dirs, files in os.walk(local_dir):
         for filename in files:
             local_path = os.path.join(root, filename)
@@ -176,33 +259,37 @@ def upload_to_s3(s3_params, local_dir, s3_bucket, s3_target_dir):
             # Check if file already exists, if yes: skip, if no: upload
             try:
                 s3.head_object(Bucket=s3_bucket, Key=s3_path)
-                print(f"File already on S3! Skipping {s3_path}...")
+                module_logger.info(f"File already on S3! Skipping {s3_path}...")
             except:
-                print(f"Uploading {s3_path} ...")
+                module_logger.info(f"Uploading {s3_path} ...")
                 s3.upload_file(local_path, s3_bucket, s3_path)
-
-
-# TODO
-non_mot_counts_source_urls = non_mot_count_url_dict
-non_mot_counts_target_dir = "../data/prep/non_mot_counts/"
-non_mot_locations_source_file = "../data/raw/non_mot_locations/standorte_verkehrszaehlung.json"
-non_mot_locations_target_dir = "../data/prep/non_mot_locations/"
-local_dir = "data/prep/"
-s3_bucket = "raph-dend-zh-data"
-s3_target_dir = "data/prep/"
 
 
 def main():
     get_prepared_non_mot_counts(
-        non_mot_counts_source_urls,
-        non_mot_counts_target_dir
+        source_urls=non_mot_count_url_dict,
+        target_dir="./data/prep/non_mot_counts/"
     )
     get_prepared_non_mot_locations(
-        non_mot_locations_source_file,
-        non_mot_locations_target_dir
+        source_file="./data/raw/non_mot_locations/standorte_verkehrszaehlung.json",
+        target_dir="./data/prep/non_mot_locations/"
+    )
+    get_historic_weather_data(
+        source_url=historic_weather_url,
+        target_dir="./data/prep/weather_data/"
+    )
+    append_actual_weatherdata(
+        request_url="https://tecdottir.herokuapp.com/measurements/mythenquai",
+        target_dir="./data/prep/weather_data/",
+        chunksize=50
     )
     s3_params = get_s3_params("dwh.cfg", "AWS")
-    upload_to_s3(s3_params, local_dir, s3_bucket, s3_target_dir)
+    upload_to_s3(
+        s3_params,
+        local_dir="data/prep/",
+        s3_bucket="raph-dend-zh-data",
+        s3_target_dir="data/prep/"
+    )
 
 
 if __name__ == "__main__":
