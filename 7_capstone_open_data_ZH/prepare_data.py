@@ -282,14 +282,14 @@ def upload_to_s3(s3_params, local_dir, s3_bucket, s3_target_dir):
 
 
 def main():
-    # get_prepared_non_mot_counts(
-    #     source_urls=non_mot_count_url_dict,
-    #     target_dir="./data/prep/non_mot_counts/"
-    # )
-    # get_prepared_non_mot_locations(
-    #     source_file="./data/raw/non_mot_locations/standorte_verkehrszaehlung.json",
-    #     target_dir="./data/prep/non_mot_locations/"
-    # )
+    get_prepared_non_mot_counts(
+        source_urls=non_mot_count_url_dict,
+        target_dir="./data/prep/non_mot_counts/"
+    )
+    get_prepared_non_mot_locations(
+        source_file="./data/raw/non_mot_locations/standorte_verkehrszaehlung.json",
+        target_dir="./data/prep/non_mot_locations/"
+    )
     get_historic_weather_data(
         source_url=historic_weather_url,
         target_dir="./data/prep/weather_data/"

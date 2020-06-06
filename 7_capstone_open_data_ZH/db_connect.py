@@ -43,7 +43,7 @@ def connect():
         conn.set_session(autocommit=True)
         # Create a cursor
         cur = conn.cursor()
-        print("Success!")
+        print("Connected to database!")
 
         return cur, conn
 
