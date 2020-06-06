@@ -22,8 +22,8 @@ drop_fact_weather = "DROP TABLE IF EXISTS fact_weather;"
 drop_dim_date = "DROP TABLE IF EXISTS dim_date CASCADE;"
 drop_dim_location = "DROP TABLE IF EXISTS dim_location CASCADE;"
 drop_dim_time = "DROP TABLE IF EXISTS dim_time CASCADE;"
-drop_stagingNonMotCount = "DROP TABLE IF EXISTS stagingNonMotCount CASCADE;"
-drop_stagingNonMotLocation = "DROP TABLE IF EXISTS stagingNonMotLocation CASCADE;"
+drop_staging_NonMotCount = "DROP TABLE IF EXISTS staging_NonMotCount CASCADE;"
+drop_staging_NonMotLocation = "DROP TABLE IF EXISTS staging_NonMotLocation CASCADE;"
 drop_staging_weather = "DROP TABLE IF EXISTS staging_weather CASCADE;"
 
 
@@ -34,7 +34,7 @@ drop_staging_weather = "DROP TABLE IF EXISTS staging_weather CASCADE;"
 
 # Staging Tables
 
-create_stagingNonMotCount = (
+create_staging_NonMotCount = (
     """
     CREATE TABLE IF NOT EXISTS staging_NonMotCount(
         fk_zaehler VARCHAR(20),
@@ -51,7 +51,7 @@ create_stagingNonMotCount = (
     """
 )
 
-create_stagingNonMotLocation = (
+create_staging_NonMotLocation = (
     """
     CREATE TABLE IF NOT EXISTS staging_NonMotLocation(
         abkuerzung CHAR(8),
@@ -196,7 +196,7 @@ create_fact_weather = (
 # COPY loads data into a table from data files or from an Amazon DynamoDB table.
 # Read more here: https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html
 
-# copy_stagingNonMotLocation = (
+# copy_staging_NonMotLocation = (
 #     f"""
 #     COPY staging_NonMotLocation
 #     FROM {LOC_DATA}
@@ -208,7 +208,7 @@ create_fact_weather = (
 #     """
 # )
 
-copy_stagingNonMotLocation = (
+copy_staging_NonMotLocation = (
     f"""
     COPY staging_NonMotLocation
     FROM {NON_MOT_LOC_DATA}
@@ -220,7 +220,7 @@ copy_stagingNonMotLocation = (
     """
 )
 
-copy_stagingNonMotCount = (
+copy_staging_NonMotCount = (
     f"""
     COPY staging_nonMotCount
     FROM {NON_MOT_COUNT_DATA}
@@ -431,8 +431,8 @@ create_table_queries = [
     create_fact_count,
     create_fact_weather,
     create_staging_weather,
-    create_stagingNonMotCount,
-    create_stagingNonMotLocation
+    create_staging_NonMotCount,
+    create_staging_NonMotLocation
 ]
 
 drop_table_queries = [
@@ -441,13 +441,14 @@ drop_table_queries = [
     drop_dim_time,
     drop_fact_count,
     drop_fact_weather,
-    drop_stagingNonMotCount,
-    drop_stagingNonMotLocation,
+    drop_staging_NonMotCount,
+    drop_staging_NonMotLocation,
+    drop_staging_weather
 ]
 
 copy_table_queries = [
-    copy_stagingNonMotCount,
-    copy_stagingNonMotLocation,
+    copy_staging_NonMotCount,
+    copy_staging_NonMotLocation,
     copy_staging_weather,
     copy_dim_time,
     copy_dim_date,
@@ -457,4 +458,10 @@ insert_table_queries = [
     insert_dim_location,
     insert_fact_count,
     insert_fact_weather,
+]
+
+drop_staging_queries = [
+    drop_staging_NonMotCount,
+    drop_staging_NonMotLocation,
+    drop_staging_weather,
 ]
