@@ -29,12 +29,12 @@ def main():
     # s3_bucket = access_s3()
     logger.info("Connecting to DB ...")
     cur, conn = connect()
-    # logger.info("Loading staging tables ...")
-    # load_staging_tables(cur, conn)
+    logger.info("Loading staging tables ...")
+    load_staging_tables(cur, conn)
     logger.info("Inserting anaytics tables ...")
     insert_tables(cur, conn)
     close(cur, conn)
-    logger.info("All done. Connection closed.")
+    logger.info("All done. Database connection closed.")
 
 
 if __name__ == "__main__":
