@@ -19,12 +19,12 @@ DATE_DATA = config.get("S3", "DATE_DATA")
 
 drop_fact_count = "DROP TABLE IF EXISTS fact_count;"
 drop_fact_weather = "DROP TABLE IF EXISTS fact_weather;"
-drop_dim_date = "DROP TABLE IF EXISTS dim_date;"
-drop_dim_location = "DROP TABLE IF EXISTS dim_location;"
-drop_dim_time = "DROP TABLE IF EXISTS dim_time;"
-drop_stagingNonMotCount = "DROP TABLE IF EXISTS stagingNonMotCount;"
-drop_stagingNonMotLocation = "DROP TABLE IF EXISTS stagingNonMotLocation;"
-drop_staging_weather = "DROP TABLE IF EXISTS staging_weather;"
+drop_dim_date = "DROP TABLE IF EXISTS dim_date CASCADE;"
+drop_dim_location = "DROP TABLE IF EXISTS dim_location CASCADE;"
+drop_dim_time = "DROP TABLE IF EXISTS dim_time CASCADE;"
+drop_stagingNonMotCount = "DROP TABLE IF EXISTS stagingNonMotCount CASCADE;"
+drop_stagingNonMotLocation = "DROP TABLE IF EXISTS stagingNonMotLocation CASCADE;"
+drop_staging_weather = "DROP TABLE IF EXISTS staging_weather CASCADE;"
 
 
 # CREATE TABLES
@@ -71,10 +71,10 @@ create_stagingNonMotLocation = (
     """
 )
 
-create_fact_weather = (
+create_staging_weather = (
     """
-    CREATE TABLE IF NOT EXISTS fact_weather(
-        datetime_cet TIMESTAMP SORTKEY DISTKEY,
+    CREATE TABLE IF NOT EXISTS staging_weather(
+        datetime_cet TIMESTAMP SORTKEY,
         air_temperature FLOAT,
         humidity SMALLINT,
         wind_gust_max_10min FLOAT,
@@ -175,7 +175,7 @@ create_fact_weather = (
     """
     CREATE TABLE IF NOT EXISTS fact_weather(
         weather_id INT IDENTITY(0,1) PRIMARY KEY,
-        date_key INT REFERENCES dim_date (date_key) SORTKEY DISTKEY,
+        date_key INT REFERENCES dim_date (date_key) SORTKEY,
         time_key INT REFERENCES dim_time (time_key),
         air_temperature FLOAT,
         humidity SMALLINT,
@@ -235,7 +235,7 @@ copy_stagingNonMotCount = (
 # Redhsift does not support TIME datatype from PostgreSQL, so I have to import the data
 copy_staging_weather = (
     f"""
-    COPY fact_weather
+    COPY staging_weather
     FROM {WEATHER_DATA}
     CREDENTIALS 'aws_access_key_id={KEY};aws_secret_access_key={SECRET}'
     DELIMITER ','
@@ -430,6 +430,7 @@ create_table_queries = [
     create_dim_time,
     create_fact_count,
     create_fact_weather,
+    create_staging_weather,
     create_stagingNonMotCount,
     create_stagingNonMotLocation
 ]
