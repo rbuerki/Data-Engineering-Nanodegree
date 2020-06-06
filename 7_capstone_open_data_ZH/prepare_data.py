@@ -121,38 +121,6 @@ def get_prepared_non_mot_locations(source_file, target_dir):
     module_logger.info("Locations file prepared and saved.\n")
 
 
-def get_s3_params(param_file, section):
-    """Read and return necessary parameters for connecting to s3.
-
-    Parameters
-    ----------
-    param_file : str
-        Filename of the configuration file (.cfg)
-    section : str
-        Section containing the relevant parameters.
-
-    Returns
-    -------
-    tuple
-        Necessary parameters and credentials for cluster creation:
-        AWS Key ID, AWS Secret Key ID.
-    """
-    # Create a parser to read config file
-    parser = ConfigParser()
-    parser.read(param_file)
-
-    # Get section, default to AWS
-    s3_params = {}
-    if parser.has_section(section):
-        params = parser.items(section)
-        for param in params:
-            s3_params[param[0]] = param[1]
-    else:
-        raise Exception(f"Section {section} not found in the {param_file} file.")
-
-    return s3_params
-
-
 def get_historic_weather_data(source_url, target_dir):
     """Download the csv file containing the weather data from 2007 up to
     the previous year, clean the data and write the preprocessed dataset
@@ -220,8 +188,56 @@ def append_actual_weatherdata(request_url, target_dir, chunksize=50):
         df = pd.json_normalize(result_json["result"])
         df = df.iloc[:, [2, 5, 8, 11, 14, 17, 20, 23, 26, 29]]
 
+        df.fillna(-1, inplace=True)
+        for col in ["values.humidity.value",
+                    "values.wind_force_avg_10min.value",
+                    "values.wind_direction.value",
+                    ]:
+            df[col] = df[col].astype(int)
+        df["values.timestamp_cet.value"] = (
+            pd.to_datetime(
+                df["values.timestamp_cet.value"],
+                infer_datetime_format=True
+                ).astype(str)
+        )
+
+        assert df.isna().any() is not False, \
+            f"Missing values in dataframe with weather data updates."
+
         # Write to file
         df.to_csv(f"{target_dir}weather_data.csv", index=False, header=False, mode="a")
+
+
+def get_s3_params(param_file, section):
+    """Read and return necessary parameters for connecting to s3.
+
+    Parameters
+    ----------
+    param_file : str
+        Filename of the configuration file (.cfg)
+    section : str
+        Section containing the relevant parameters.
+
+    Returns
+    -------
+    tuple
+        Necessary parameters and credentials for cluster creation:
+        AWS Key ID, AWS Secret Key ID.
+    """
+    # Create a parser to read config file
+    parser = ConfigParser()
+    parser.read(param_file)
+
+    # Get section, default to AWS
+    s3_params = {}
+    if parser.has_section(section):
+        params = parser.items(section)
+        for param in params:
+            s3_params[param[0]] = param[1]
+    else:
+        raise Exception(f"Section {section} not found in the {param_file} file.")
+
+    return s3_params
 
 
 def upload_to_s3(s3_params, local_dir, s3_bucket, s3_target_dir):
@@ -266,14 +282,14 @@ def upload_to_s3(s3_params, local_dir, s3_bucket, s3_target_dir):
 
 
 def main():
-    get_prepared_non_mot_counts(
-        source_urls=non_mot_count_url_dict,
-        target_dir="./data/prep/non_mot_counts/"
-    )
-    get_prepared_non_mot_locations(
-        source_file="./data/raw/non_mot_locations/standorte_verkehrszaehlung.json",
-        target_dir="./data/prep/non_mot_locations/"
-    )
+    # get_prepared_non_mot_counts(
+    #     source_urls=non_mot_count_url_dict,
+    #     target_dir="./data/prep/non_mot_counts/"
+    # )
+    # get_prepared_non_mot_locations(
+    #     source_file="./data/raw/non_mot_locations/standorte_verkehrszaehlung.json",
+    #     target_dir="./data/prep/non_mot_locations/"
+    # )
     get_historic_weather_data(
         source_url=historic_weather_url,
         target_dir="./data/prep/weather_data/"
