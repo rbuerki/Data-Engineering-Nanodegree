@@ -1,5 +1,15 @@
+import logging
 from db_connect import connect, close
 from sql_queries import create_table_queries, drop_table_queries
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 
 def drop_tables(cur, conn):
@@ -15,10 +25,15 @@ def create_tables(cur, conn):
 
 
 def main():
+
+    logger.info("Connecting to DB ...")
     cur, conn = connect()
+    logger.info("Dropping existing tables ...")
     drop_tables(cur, conn)
+    logger.info("Creating tables ...")
     create_tables(cur, conn)
     close(cur, conn)
+    logger.info("All done. Database connection closed.")
 
 
 if __name__ == "__main__":
