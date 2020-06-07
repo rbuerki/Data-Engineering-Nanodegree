@@ -87,7 +87,7 @@ Script to retrieve the data, preprocess it locally and upload it to s3 (ETL, pt.
 prepare_data.py
 ```
 
-ETL pipeline to populate the data in s3 data into the database tables (ETL, pt. 2):
+ETL pipeline to populate the data on s3 into the database tables (ETL, pt. 2):
 
 ``` sh
 etl.py
@@ -95,7 +95,7 @@ etl.py
 
 ## Acknowledgements
 
-Ressources which helped me to develop date and time dimensions in postgres:
+Ressources which helped me to develop date and time dimensions in postgreSQL:
 
 - [wiki on postgresql.org](https://wiki.postgresql.org/wiki/Date_and_Time_dimensions)
 - [blogpost by nicholasduffy.com](https://nicholasduffy.com/posts/postgresql-date-dimension/)
