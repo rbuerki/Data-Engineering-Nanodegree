@@ -98,4 +98,4 @@ etl.py
 Ressources which helped me to develop date and time dimensions in postgreSQL:
 
 - [wiki on postgresql.org](https://wiki.postgresql.org/wiki/Date_and_Time_dimensions)
-- [blogpost by nicholasduffy.com](https://nicholasduffy.com/posts/postgresql-date-dimension/)
+- [blogpost from nicholasduffy.com](https://nicholasduffy.com/posts/postgresql-date-dimension/)
