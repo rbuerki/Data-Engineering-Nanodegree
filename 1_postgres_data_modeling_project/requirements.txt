@@ -25,7 +25,7 @@ prompt-toolkit==3.0.3
 psycopg2==2.8.4
 pycodestyle==2.5.0
 pyflakes==2.1.1
-Pygments==2.5.2
+Pygments==2.7.4
 python-dateutil==2.8.1
 pytz==2019.3
 pywin32==227
